@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PANCE Study Dashboard Generator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f7f7f5;--bg3:#f0f0ec;
+  --text:#1a1a1a;--text2:#6b6b6b;--text3:#9b9b9b;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#1D9E75;--red:#A32D2D;
+  --r:8px;--rl:12px;
+  --font:"Inter",-apple-system,BlinkMacSystemFont,sans-serif;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1c;--bg2:#242424;--bg3:#2c2c2c;
+  --text:#f0f0f0;--text2:#a0a0a0;--text3:#666;
+  --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+}}
+body{font-family:var(--font);background:var(--bg3);color:var(--text);min-height:100vh;padding:2rem 1rem}
+.wrap{max-width:680px;margin:0 auto}
+.card{background:var(--bg);border-radius:var(--rl);padding:1.75rem;margin-bottom:1rem;border:.5px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem}
+.logo{width:40px;height:40px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0}
+.app-title{font-size:20px;font-weight:600}
+.app-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.step-indicator{display:flex;gap:6px;margin-bottom:1.5rem}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border2);flex-shrink:0;transition:background .2s}
+.step-dot.act{background:var(--green)}
+.step-dot.done{background:var(--green);opacity:.4}
+.step-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.step-sub{font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5}
+.field-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.field-group{margin-bottom:1rem}
+.finput{width:100%;font-size:13px;padding:9px 12px;border:.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
+.finput:focus{border-color:var(--border2)}
+.frow{display:flex;gap:8px;flex-wrap:wrap}
+.frow .finput{flex:1;min-width:140px}
+.toggle-group{display:flex;gap:8px;flex-wrap:wrap}
+.toggle-btn{font-size:12px;padding:7px 14px;border:.5px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all .15s;user-select:none}
+.toggle-btn.sel{background:var(--green);color:#fff;border-color:var(--green)}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px;margin-top:4px}
+.cat-check{display:flex;align-items:center;gap:8px;padding:7px 10px;border:.5px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:12px;background:var(--bg);transition:all .15s}
+.cat-check:hover{background:var(--bg2)}
+.cat-check.sel{border-color:var(--green);background:#EAF3DE;color:#27500A}
+.cat-check input{display:none}
+.cat-check .dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent}
+.cat-check.sel .dot{background:var(--green);border-color:var(--green);color:#fff}
+.nav-row{display:flex;gap:8px;justify-content:space-between;margin-top:1.25rem}
+.btn-back{font-size:13px;padding:10px 18px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.btn-next{font-size:13px;padding:10px 22px;border:none;border-radius:var(--r);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-weight:500}
+.btn-next:hover{opacity:.9}
+.btn-build{font-size:14px;padding:12px 28px;border:none;border-radius:var(--r);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-weight:600;width:100%;margin-top:1rem}
+.errmsg{font-size:11px;color:var(--red);margin-top:4px;display:none}
+.summary-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--border);font-size:13px}
+.summary-row:last-child{border:none}
+.summary-lbl{color:var(--text2)}
+.summary-val{font-weight:500;text-align:right;max-width:60%}
+.hidden{display:none}
+.progress-wrap{text-align:center;padding:2rem}
+.progress-spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-card{background:var(--bg);border-radius:var(--rl);padding:2rem;text-align:center;border:.5px solid var(--border)}
+.result-icon{font-size:48px;margin-bottom:1rem}
+.result-title{font-size:20px;font-weight:600;margin-bottom:6px}
+.result-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.5}
+.btn-download{font-size:14px;padding:12px 28px;border:none;border-radius:var(--r);background:var(--green);color:#fff;cursor:pointer;font-family:var(--font);font-weight:600;display:inline-block;text-decoration:none}
+.hours-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select.finput{cursor:pointer}
+.info-note{font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo-row">
+      <div class="logo">PA</div>
+      <div><div class="app-title">PANCE Dashboard Generator</div><div class="app-sub">Build a personalized study dashboard in 2 minutes</div></div>
+    </div>
+
+    <div class="step-indicator" id="step-dots"></div>
+
+    <!-- STEP 1: Basics -->
+    <div id="step-1">
+      <div class="step-title">Let's start with the basics</div>
+      <div class="step-sub">Your name, exam date, and how much time you have to study each day.</div>
+
+      <div class="field-group">
+        <label class="field-label">Your name</label>
+        <input class="finput" type="text" id="s1-name" placeholder="e.g. Alex Johnson">
+        <div class="errmsg" id="err-name">Please enter your name.</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">PANCE exam date</label>
+        <input class="finput" type="date" id="s1-examdate">
+        <div class="errmsg" id="err-examdate">Please enter your exam date.</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Daily study time available</label>
+        <div class="hours-row">
+          <div>
+            <label class="field-label" style="font-size:11px;margin-bottom:4px">Weekdays</label>
+            <select class="finput" id="s1-wdhr">
+              <option value="1">1 hour</option>
+              <option value="1.5" selected>1.5 hours</option>
+              <option value="2">2 hours</option>
+              <option value="2.5">2.5 hours</option>
+              <option value="3">3 hours</option>
+              <option value="4">4+ hours</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" style="font-size:11px;margin-bottom:4px">Weekends</label>
+            <select class="finput" id="s1-wehr">
+              <option value="1.5">1.5 hours</option>
+              <option value="2">2 hours</option>
+              <option value="3" selected>3 hours</option>
+              <option value="4">4 hours</option>
+              <option value="5">5+ hours</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <div></div>
+        <button class="btn-next" onclick="goStep(2)">Next &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Tools -->
+    <div id="step-2" class="hidden">
+      <div class="step-title">What tools are you using?</div>
+      <div class="step-sub">Select everything that applies. Your plan will only include tasks for tools you actually use.</div>
+
+      <div class="field-group">
+        <label class="field-label">Question bank</label>
+        <div class="toggle-group">
+          <div class="toggle-btn sel" data-group="qbank" data-val="rosh" onclick="toggleSingle(this)">Rosh Review</div>
+          <div class="toggle-btn" data-group="qbank" data-val="uworld" onclick="toggleSingle(this)">UWorld</div>
+          <div class="toggle-btn" data-group="qbank" data-val="amboss" onclick="toggleSingle(this)">AMBOSS</div>
+          <div class="toggle-btn" data-group="qbank" data-val="other" onclick="toggleSingle(this)">Other</div>
+        </div>
+        <div class="errmsg" id="err-qbank">Please select a question bank.</div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Flashcards / Anki</label>
+        <div class="toggle-group">
+          <div class="toggle-btn sel" data-group="anki" data-val="yes" onclick="toggleBool(this,'anki')">Yes, I use Anki</div>
+          <div class="toggle-btn" data-group="anki" data-val="no" onclick="toggleBool(this,'anki')">No Anki</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Video resources</label>
+        <div class="toggle-group">
+          <div class="toggle-btn sel" data-group="vid" data-val="ctp" onclick="toggleMulti(this)">Cram the PANCE</div>
+          <div class="toggle-btn" data-group="vid" data-val="hippo" onclick="toggleMulti(this)">Hippo Education</div>
+          <div class="toggle-btn" data-group="vid" data-val="youtube" onclick="toggleMulti(this)">YouTube (other)</div>
+          <div class="toggle-btn" data-group="vid" data-val="none" onclick="toggleNone(this,'vid')">No videos</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Practice exams planned?</label>
+        <div class="toggle-group">
+          <div class="toggle-btn sel" data-group="px" data-val="yes" onclick="toggleBool(this,'px')">Yes</div>
+          <div class="toggle-btn" data-group="px" data-val="no" onclick="toggleBool(this,'px')">No</div>
+        </div>
+        <div class="info-note">If yes, we'll schedule two full 120-question practice exams at strategic points in your plan.</div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(1)">&larr; Back</button>
+        <button class="btn-next" onclick="goStep(3)">Next &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: EOREs -->
+    <div id="step-3" class="hidden">
+      <div class="step-title">Do you have any EOREs coming up?</div>
+      <div class="step-sub">End of Rotation Exams before your PANCE. We'll build focused prep blocks before each one.</div>
+
+      <div class="field-group">
+        <label class="field-label">EORE exams (select all that apply)</label>
+        <div class="toggle-group" style="flex-wrap:wrap">
+          <div class="toggle-btn" data-group="eore" data-val="peds" onclick="toggleMulti(this)">Pediatrics</div>
+          <div class="toggle-btn" data-group="eore" data-val="womens" onclick="toggleMulti(this)">Women's Health</div>
+          <div class="toggle-btn" data-group="eore" data-val="fammed" onclick="toggleMulti(this)">Family Medicine</div>
+          <div class="toggle-btn" data-group="eore" data-val="im" onclick="toggleMulti(this)">Internal Medicine</div>
+          <div class="toggle-btn" data-group="eore" data-val="surgery" onclick="toggleMulti(this)">Surgery</div>
+          <div class="toggle-btn" data-group="eore" data-val="em" onclick="toggleMulti(this)">Emergency Medicine</div>
+          <div class="toggle-btn" data-group="eore" data-val="psych" onclick="toggleMulti(this)">Psychiatry</div>
+          <div class="toggle-btn" data-group="eore" data-val="none" onclick="toggleNone(this,'eore')">No EOREs</div>
+        </div>
+      </div>
+
+      <div id="eore-dates-section" class="hidden">
+        <label class="field-label" style="margin-bottom:8px">EORE dates</label>
+        <div id="eore-date-inputs"></div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(2)">&larr; Back</button>
+        <button class="btn-next" onclick="goStep(4)">Next &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: PACKRAT -->
+    <div id="step-4" class="hidden">
+      <div class="step-title">Add your PACKRAT scores <span style="font-size:13px;font-weight:400;color:var(--text2)">(optional)</span></div>
+      <div class="step-sub">If you have PACKRAT results, enter your percentage score per category below. We will cross-reference these with the national mean and automatically flag weak areas in your plan. Skip any category you do not have data for.</div>
+
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:1rem;font-size:12px;color:var(--text2);line-height:1.5">
+        Find your scores on your PACKRAT Individual Student Report. Enter the percentage shown in the "Your Performance" column for each category.
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="packrat-inputs"></div>
+
+      <div style="margin-top:1rem" class="field-group">
+        <label class="field-label">Overall PACKRAT score <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></label>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input class="finput" type="number" id="pr-overall" min="100" max="225" placeholder="e.g. 147" style="width:130px">
+          <span style="font-size:12px;color:var(--text2)">National mean (under 10 months to graduation): ~163</span>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(3)">&larr; Back</button>
+        <button class="btn-next" onclick="goStep(5)">Next &rarr;</button>
+      </div>
+    </div>
+
+
+    <!-- STEP 5: Weak areas -->
+    <div id="step-5" class="hidden">
+      <div class="step-title">Where do you need the most help?</div>
+      <div class="step-sub">Select every category you feel shaky in. These will get more Rosh blocks, more video time, and more review tasks. Don't be shy — better to over-select than under.</div>
+
+      <div id="packrat-auto-note" style="display:none;font-size:12px;color:#185FA5;background:#E6F1FB;padding:8px 12px;border-radius:var(--r);margin-bottom:10px;border:.5px solid #B5D4F4"></div>
+      <div class="field-group">
+        <label class="field-label">Weak categories (select all that apply)</label>
+        <div class="cat-grid" id="weak-cats"></div>
+      </div>
+
+      <div class="field-group" style="margin-top:1rem">
+        <label class="field-label">Strong categories to deprioritize</label>
+        <div class="cat-grid" id="strong-cats"></div>
+        <div class="info-note">These will still appear in your plan but with lighter coverage so you maintain what you know.</div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(4)">&larr; Back</button>
+        <button class="btn-next" onclick="goStep(6)">Next &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 6: Review -->
+    <div id="step-6" class="hidden">
+      <div class="step-title">Review your setup</div>
+      <div class="step-sub">Everything look right? Hit Build Dashboard to generate your personalized plan.</div>
+      <div id="summary"></div>
+      <button class="btn-build" onclick="buildDashboard()">&#9881; Build my dashboard</button>
+      <div class="nav-row">
+        <button class="btn-back" onclick="goStep(5)">&larr; Back</button>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- BUILDING -->
+    <div id="step-building" class="hidden">
+      <div class="progress-wrap">
+        <div class="progress-spinner"></div>
+        <div style="font-size:15px;font-weight:500;margin-bottom:6px">Building your dashboard...</div>
+        <div style="font-size:13px;color:var(--text2)" id="build-status">Calculating your study schedule...</div>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div id="step-done" class="hidden">
+      <div class="result-card">
+        <div class="result-icon">&#127881;</div>
+        <div class="result-title">Your dashboard is ready!</div>
+        <div class="result-sub" id="done-summary">Your personalized PANCE study plan has been generated. Download it and open it in any browser — no internet needed.</div>
+        <a id="download-link" href="#" download="PANCE_Dashboard.html" class="btn-download">&#11015; Download Dashboard</a>
+        <div style="font-size:11px;color:var(--text3);margin-top:12px">Opens in any browser. Progress saves automatically to that browser.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var TOTAL_STEPS = 6;
+var currentStep = 1;
+
+var CATS = [
+  'Cardiovascular','Dermatologic','Endocrine','Eyes, Ears, Nose, Throat',
+  'Gastrointestinal / Nutrition','Genitourinary','Hematologic','Infectious Disease',
+  'Musculoskeletal','Neurologic','Psychiatry','Pulmonary','Renal','Reproductive','Professional Practice'
+];
+
+var EORE_LABELS = {
+  peds:'Pediatrics', womens:"Womens Health", fammed:'Family Medicine',
+  im:'Internal Medicine', surgery:'Surgery', em:'Emergency Medicine', psych:'Psychiatry'
+};
+
+
+// PACKRAT categories with national means (PACKRAT v30 national mean <10 months)
+var PACKRAT_CATS = [
+  {key:'cardiology', label:'Cardiology', mean:77, bpCat:'Cardiovascular'},
+  {key:'pulmonology', label:'Pulmonology', mean:74, bpCat:'Pulmonary'},
+  {key:'gi', label:'Gastrointestinal / Nutritional', mean:65, bpCat:'Gastrointestinal / Nutrition'},
+  {key:'ortho', label:'Orthopedics / Rheumatology', mean:69, bpCat:'Musculoskeletal'},
+  {key:'ent', label:'ENT / Ophthalmology', mean:72, bpCat:'Eyes, Ears, Nose, Throat'},
+  {key:'obgyn', label:'Obstetrics / Gynecology', mean:67, bpCat:'Reproductive'},
+  {key:'endo', label:'Endocrinology', mean:83, bpCat:'Endocrine'},
+  {key:'neuro', label:'Neurology', mean:75, bpCat:'Neurologic'},
+  {key:'psych', label:'Psychiatry / Behavioral', mean:79, bpCat:'Psychiatry'},
+  {key:'renal', label:'Urology / Renal', mean:78, bpCat:'Renal'},
+  {key:'derm', label:'Dermatology', mean:67, bpCat:'Dermatologic'},
+  {key:'heme', label:'Hematology', mean:68, bpCat:'Hematologic'},
+  {key:'id', label:'Infectious Diseases', mean:58, bpCat:'Infectious Disease'},
+];
+
+function initPackratInputs() {
+  var cont = document.getElementById('packrat-inputs');
+  if (!cont) return;
+  cont.innerHTML = '';
+  PACKRAT_CATS.forEach(function(cat) {
+    var div = document.createElement('div');
+    div.style.cssText = 'background:var(--bg);border:.5px solid var(--border);border-radius:var(--r);padding:8px 10px';
+    var mean = cat.mean;
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+      '<span style="font-size:12px;font-weight:500;color:var(--text)">' + cat.label + '</span>' +
+      '<span style="font-size:10px;color:var(--text3)">mean: ' + mean + '%</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+      '<input type="number" id="pr-' + cat.key + '" min="0" max="100" placeholder="your %" ' +
+      'style="width:75px;font-size:14px;font-weight:500;padding:5px 8px;border:.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none" ' +
+      'onchange="updatePackratField(\'' + cat.key + '\',this.value,' + mean + ')" />' +
+      '<div id="pr-bar-' + cat.key + '" style="flex:1;height:6px;background:var(--bg2);border-radius:3px;overflow:hidden"><div id="pr-fill-' + cat.key + '" style="height:6px;border-radius:3px;width:0%;background:var(--green);transition:width .3s"></div></div>' +
+      '<span id="pr-flag-' + cat.key + '" style="font-size:10px;width:50px;text-align:right;color:var(--text3)"></span>' +
+      '</div>';
+    cont.appendChild(div);
+  });
+}
+
+function updatePackratField(key, val, mean) {
+  var n = parseFloat(val);
+  state.packrat[key] = isNaN(n) ? null : n;
+  var fill = document.getElementById('pr-fill-' + key);
+  var flag = document.getElementById('pr-flag-' + key);
+  if (!fill || !flag) return;
+  if (isNaN(n) || val === '') { fill.style.width='0%'; flag.textContent=''; return; }
+  fill.style.width = Math.min(100,n) + '%';
+  var diff = n - mean;
+  if (diff < -20) { fill.style.background='#A32D2D'; flag.textContent='critical'; flag.style.color='#A32D2D'; }
+  else if (diff < -10) { fill.style.background='#C07000'; flag.textContent='weak'; flag.style.color='#C07000'; }
+  else if (diff < 0) { fill.style.background='#E0A020'; flag.textContent='below'; flag.style.color='#E0A020'; }
+  else { fill.style.background='#1D9E75'; flag.textContent='ok'; flag.style.color='#1D9E75'; }
+}
+
+function getPackratWeakCats() {
+  // Returns blueprint categories that PACKRAT identifies as weak (below mean by 10+)
+  var weak = [];
+  PACKRAT_CATS.forEach(function(cat) {
+    var score = state.packrat[cat.key];
+    if (score !== null && score !== undefined) {
+      if (score < cat.mean - 10) {
+        if (weak.indexOf(cat.bpCat) < 0) weak.push(cat.bpCat);
+      }
+    }
+  });
+  return weak;
+}
+
+function getPackratCriticalCats() {
+  // Critically weak: 20+ below mean
+  var crit = [];
+  PACKRAT_CATS.forEach(function(cat) {
+    var score = state.packrat[cat.key];
+    if (score !== null && score !== undefined) {
+      if (score < cat.mean - 20) {
+        if (crit.indexOf(cat.bpCat) < 0) crit.push(cat.bpCat);
+      }
+    }
+  });
+  return crit;
+}
+
+
+var CTP_EPISODES = {
+  'Cardiovascular':['S1E16 Cardiomyopathy','S1E17 Congenital Heart Disease','S1E18 Endocarditis','S1E19 Hypertension','S1E20 HTN Medications','S1E21 Heart Failure','S1E22 Heart Murmurs','S1E23 ACS','S1E24 50 HY Cardiology Questions','S1E51 AV Blocks','S1E56 Antiarrhythmic Drugs'],
+  'Dermatologic':['S1E -- Dermatology overview (search Cram the PANCE Dermatology)'],
+  'Endocrine':['S1E2 Diabetes','S1E3 Cushing vs Addison','S1E4 Hyperparathyroidism','S1E5 Hyperthyroidism vs Hypothyroidism','S1E6 SIADH vs DI','S1E30 50 HY Endocrine Questions'],
+  'Gastrointestinal / Nutrition':['S1E7 UC vs Crohns Disease','S1E8 Pancreatitis','S1E9 Biliary Disorders','S1E11 Gastric Disorders','S1E12-13 Esophageal Disorders','S1E14 Hepatitis','S1E15 Small and Large Bowel','S1E25 50 HY GI Questions'],
+  'Genitourinary':['S1E27 50 HY Renal Questions','S1E1 Renal cram session'],
+  'Hematologic':['S1E35 Leukemia','S1E36 Thrombocytopenia','S1E37 Anemia','S1E38 Bleeding and Coagulation','S1E39 Lymphoma','S1E40 50 HY Hematology Questions'],
+  'Infectious Disease':['S1E28 Tuberculosis','S1E29 Pneumonia','S1E41 Antibiotics','S1E57 Bacterial Disease Review'],
+  'Musculoskeletal':['S1E44 MSK Lower Extremity','S1E45 MSK Upper Extremity','S1E46 MSK Rheumatology Part 1','S1E47 MSK Rheumatology Part 2','S1E48 50 HY MSK Questions'],
+  'Neurologic':['S1E42 Stroke','S1E43 Seizures'],
+  'Psychiatry':['S1E52 Antidepressants'],
+  'Pulmonary':['S1E26 COPD','S1E29 Pneumonia','S1E31 Lung Cancer','S1E32 Asthma','S1E33 Restrictive Pulmonary','S1E34 50 HY Pulmonology Questions'],
+  'Renal':['S1E1 Renal cram session','S1E27 50 HY Renal Questions'],
+  'Reproductive':['S1E49 Breast Disorders','S1E50 Breast Cancer','S1E53 Endometriosis','S1E54 Placenta Previa and Abruption','S1E55 PCOS'],
+  'Professional Practice':[]
+};
+
+// State
+var state = {
+  name:'', examDate:'', wdHours:1.5, weHours:3,
+  qbank:'rosh', anki:true, videos:['ctp'], practiceExams:true,
+  eores:[], eoreDates:{},
+  weakCats:[], strongCats:[], packrat:{}, packratOverall:''
+};
+
+function initDots() {
+  var d = document.getElementById('step-dots');
+  d.innerHTML = '';
+  for (var i=1; i<=TOTAL_STEPS; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'step-dot' + (i===currentStep?' act':i<currentStep?' done':'');
+    d.appendChild(dot);
+  }
+}
+
+function initCatGrids() {
+  var wg = document.getElementById('weak-cats');
+  var sg = document.getElementById('strong-cats');
+  wg.innerHTML = ''; sg.innerHTML = '';
+  CATS.forEach(function(c) {
+    wg.appendChild(makeCatCheck(c, 'weak'));
+    sg.appendChild(makeCatCheck(c, 'strong'));
+  });
+}
+
+function makeCatCheck(cat, type) {
+  var div = document.createElement('div');
+  div.className = 'cat-check';
+  div.setAttribute('data-cat', cat);
+  div.setAttribute('data-type', type);
+  div.innerHTML = '<div class="dot">&#10003;</div><span>' + cat + '</span>';
+  div.onclick = function() {
+    var arr = type === 'weak' ? state.weakCats : state.strongCats;
+    var other = type === 'weak' ? state.strongCats : state.weakCats;
+    var idx = arr.indexOf(cat);
+    var oidx = other.indexOf(cat);
+    if (idx >= 0) { arr.splice(idx, 1); div.classList.remove('sel'); }
+    else { arr.push(cat); div.classList.add('sel'); if (oidx >= 0) { other.splice(oidx,1); document.querySelector('.cat-check[data-cat="'+cat+'"][data-type="'+(type==="weak"?"strong":"weak")+'"]').classList.remove('sel'); } }
+  };
+  return div;
+}
+
+function toggleSingle(el) {
+  var group = el.getAttribute('data-group');
+  var val = el.getAttribute('data-val');
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(function(b){ b.classList.remove('sel'); });
+  el.classList.add('sel');
+  state[group] = val;
+}
+
+function toggleBool(el, key) {
+  var val = el.getAttribute('data-val');
+  var group = el.getAttribute('data-group');
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(function(b){ b.classList.remove('sel'); });
+  el.classList.add('sel');
+  state[key] = val === 'yes';
+}
+
+function toggleMulti(el) {
+  var group = el.getAttribute('data-group');
+  var val = el.getAttribute('data-val');
+  // deselect "none" if present
+  var noneBtn = document.querySelector('[data-group="'+group+'"][data-val="none"]');
+  if (noneBtn) noneBtn.classList.remove('sel');
+  el.classList.toggle('sel');
+  var arr = group === 'eore' ? state.eores : state.videos;
+  var idx = arr.indexOf(val);
+  if (idx >= 0) arr.splice(idx,1); else arr.push(val);
+  if (group === 'eore') updateEoreDates();
+}
+
+function toggleNone(el, group) {
+  document.querySelectorAll('[data-group="'+group+'"]').forEach(function(b){ b.classList.remove('sel'); });
+  el.classList.add('sel');
+  if (group === 'eore') { state.eores = []; updateEoreDates(); }
+  if (group === 'vid') { state.videos = []; }
+}
+
+function updateEoreDates() {
+  var sec = document.getElementById('eore-dates-section');
+  var inp = document.getElementById('eore-date-inputs');
+  if (state.eores.length === 0) { sec.classList.add('hidden'); return; }
+  sec.classList.remove('hidden');
+  inp.innerHTML = '';
+  state.eores.forEach(function(e) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px';
+    row.innerHTML = '<span style="font-size:13px;min-width:140px">' + EORE_LABELS[e] + ' EORE</span><input class="finput" type="date" id="eore-' + e + '" style="flex:1" value="' + (state.eoreDates[e] || '') + '" onchange="state.eoreDates[this.getAttribute(\"data-ekey\")]=this.value" data-ekey="' + e + '">';
+    inp.appendChild(row);
+  });
+}
+
+function goStep(n) {
+  // validate current step before advancing
+  if (n > currentStep) {
+    if (currentStep === 1) {
+      var name = document.getElementById('s1-name').value.trim();
+      var ed = document.getElementById('s1-examdate').value;
+      var ok = true;
+      if (!name) { document.getElementById('err-name').style.display='block'; ok=false; } else { document.getElementById('err-name').style.display='none'; }
+      if (!ed) { document.getElementById('err-examdate').style.display='block'; ok=false; } else { document.getElementById('err-examdate').style.display='none'; }
+      if (!ok) return;
+      state.name = name;
+      state.examDate = ed;
+      state.wdHours = parseFloat(document.getElementById('s1-wdhr').value);
+      state.weHours = parseFloat(document.getElementById('s1-wehr').value);
+    }
+    if (currentStep === 2) {
+      var qsel = document.querySelector('[data-group="qbank"].sel');
+      if (!qsel) { document.getElementById('err-qbank').style.display='block'; return; }
+      document.getElementById('err-qbank').style.display='none';
+      state.qbank = qsel.getAttribute('data-val');
+    }
+    if (currentStep === 4) {
+      // Save packrat overall
+      state.packratOverall = document.getElementById('pr-overall').value;
+      // Auto-populate weak cats from PACKRAT
+      var pkWeak = getPackratWeakCats();
+      var pkCrit = getPackratCriticalCats();
+      pkWeak.concat(pkCrit).forEach(function(cat) {
+        if (state.weakCats.indexOf(cat) < 0) {
+          state.weakCats.push(cat);
+          var el = document.querySelector('.cat-check[data-cat="' + cat + '"][data-type="weak"]');
+          if (el) el.classList.add('sel');
+        }
+      });
+      // Show a note if packrat data was used
+      var note = document.getElementById('packrat-auto-note');
+      if (note) {
+        if (pkWeak.length > 0 || pkCrit.length > 0) {
+          note.textContent = 'PACKRAT data auto-selected ' + (pkWeak.length + pkCrit.length) + ' weak categories below. Review and adjust as needed.';
+          note.style.display = 'block';
+        }
+      }
+    }
+  }
+  if (n === 6) buildSummary();
+  document.getElementById('step-'+currentStep).classList.add('hidden');
+  currentStep = n;
+  document.getElementById('step-'+currentStep).classList.remove('hidden');
+  initDots();
+  window.scrollTo(0,0);
+}
+
+function buildSummary() {
+  var examFmt = state.examDate ? new Date(state.examDate+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) : '--';
+  var eoreList = state.eores.length ? state.eores.map(function(e){ var d=state.eoreDates[e]; var dateStr=d?new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}):''; return EORE_LABELS[e]+(dateStr?' ('+dateStr+')':''); }).join(', ') : 'None';
+  var vidList = state.videos.length ? state.videos.map(function(v){ return v==='ctp'?'Cram the PANCE':v==='hippo'?'Hippo Education':v==='youtube'?'YouTube':''; }).filter(Boolean).join(', ') : 'None';
+  var weakList = state.weakCats.length ? state.weakCats.join(', ') : 'None selected';
+  var strongList = state.strongCats.length ? state.strongCats.join(', ') : 'None selected';
+  var today = new Date(); var exam = new Date(state.examDate+'T12:00:00');
+  var days = Math.max(0, Math.floor((exam-today)/864e5));
+  // Build packrat summary
+  var prEntries = PACKRAT_CATS.filter(function(cat){ return state.packrat[cat.key] !== null && state.packrat[cat.key] !== undefined; });
+  var prSummary = prEntries.length > 0 ? prEntries.map(function(cat){ var s=state.packrat[cat.key]; var diff=s-cat.mean; var flag=diff<-20?'critical':diff<-10?'weak':diff<0?'below avg':'ok'; return cat.label+': '+s+'% ('+flag+')'; }).join(', ') : 'Not entered';
+  var prWeak = getPackratWeakCats();
+  var prCrit = getPackratCriticalCats();
+  var prAutoNote = prWeak.length ? prCrit.length+' critical, '+(prWeak.length-prCrit.length)+' weak categories auto-flagged' : 'No PACKRAT data';
+
+  var rows = [
+    ['Student','', state.name],
+    ['Exam date','', examFmt],
+    ['Days remaining','', days + ' days'],
+    ['Weekday study time','', state.wdHours + ' hrs/day'],
+    ['Weekend study time','', state.weHours + ' hrs/day'],
+    ['Question bank','', state.qbank.charAt(0).toUpperCase()+state.qbank.slice(1)+' Review'],
+    ['Anki','', state.anki ? 'Yes' : 'No'],
+    ['Videos','', vidList],
+    ['Practice exams','', state.practiceExams ? 'Yes (2 full exams scheduled)' : 'No'],
+    ['EOREs','', eoreList],
+    ['PACKRAT overall','', state.packratOverall ? state.packratOverall + ' / 225' : 'Not entered'],
+    ['PACKRAT auto-flagged','', prAutoNote],
+    ['Weak categories','', weakList],
+    ['Strong (deprioritize)','', strongList],
+  ];
+  var html = '';
+  rows.forEach(function(r){ html += '<div class="summary-row"><span class="summary-lbl">'+r[0]+'</span><span class="summary-val">'+r[2]+'</span></div>'; });
+  document.getElementById('summary').innerHTML = html;
+}
+
+function buildDashboard() {
+  document.getElementById('step-6').classList.add('hidden');
+  document.getElementById('step-building').classList.remove('hidden');
+  currentStep = 99;
+  initDots();
+
+  var statuses = ['Calculating your study schedule...','Mapping NCCPA blueprint topics...','Building your daily task list...','Loading HY drugs and mnemonics...','Assembling your dashboard...'];
+  var si = 0;
+  var statusEl = document.getElementById('build-status');
+  var interval = setInterval(function() {
+    si++;
+    if (si < statuses.length) statusEl.textContent = statuses[si];
+  }, 600);
+
+  setTimeout(function() {
+    clearInterval(interval);
+    var dashHTML = generateDashboard(state);
+    var blob = new Blob([dashHTML], {type:'text/html'});
+    var url = URL.createObjectURL(blob);
+    var link = document.getElementById('download-link');
+    link.href = url;
+    link.download = state.name.replace(/\s+/g,'_') + '_PANCE_Dashboard.html';
+    var exam = new Date(state.examDate+'T12:00:00');
+    var today = new Date();
+    var days = Math.max(0, Math.floor((exam-today)/864e5));
+    document.getElementById('done-summary').textContent = 'A personalized ' + days + '-day PANCE study plan for ' + state.name + ' has been generated. Download it and open in any browser.';
+    document.getElementById('step-building').classList.add('hidden');
+    document.getElementById('step-done').classList.remove('hidden');
+  }, 3200);
+}
+
+// ── PLAN GENERATOR ──
+function generateDashboard(s) {
+  var examDate = new Date(s.examDate + 'T08:00:00');
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var startDate = new Date(today);
+  var totalDays = Math.floor((examDate - startDate) / 864e5);
+
+  // Sort eores by date
+  var eoresSorted = s.eores.filter(function(e){ return s.eoreDates[e]; }).sort(function(a,b){
+    return new Date(s.eoreDates[a]) - new Date(s.eoreDates[b]);
+  });
+
+  // Build ordered categories: weak first, then neutral, then strong last
+  var allCats = ['Dermatologic','Infectious Disease','Reproductive','Pulmonary','Eyes, Ears, Nose, Throat','Musculoskeletal','Gastrointestinal / Nutrition','Renal','Cardiovascular','Endocrine','Neurologic','Hematologic','Psychiatry','Genitourinary','Professional Practice'];
+  var orderedCats = [];
+  // weak cats first
+  s.weakCats.forEach(function(c){ if(orderedCats.indexOf(c)<0) orderedCats.push(c); });
+  // neutral
+  allCats.forEach(function(c){ if(s.weakCats.indexOf(c)<0 && s.strongCats.indexOf(c)<0 && orderedCats.indexOf(c)<0) orderedCats.push(c); });
+  // strong last
+  s.strongCats.forEach(function(c){ if(orderedCats.indexOf(c)<0) orderedCats.push(c); });
+
+  // Merge PACKRAT weak cats into weakCats (PACKRAT takes priority as 'critical')
+  var pkCritCats = [];
+  var pkWeakCats = [];
+  if (s.packrat) {
+    var PRCATS = [
+      {key:'cardiology',mean:77,bpCat:'Cardiovascular'},{key:'pulmonology',mean:74,bpCat:'Pulmonary'},
+      {key:'gi',mean:65,bpCat:'Gastrointestinal / Nutrition'},{key:'ortho',mean:69,bpCat:'Musculoskeletal'},
+      {key:'ent',mean:72,bpCat:'Eyes, Ears, Nose, Throat'},{key:'obgyn',mean:67,bpCat:'Reproductive'},
+      {key:'endo',mean:83,bpCat:'Endocrine'},{key:'neuro',mean:75,bpCat:'Neurologic'},
+      {key:'psych',mean:79,bpCat:'Psychiatry'},{key:'renal',mean:78,bpCat:'Renal'},
+      {key:'derm',mean:67,bpCat:'Dermatologic'},{key:'heme',mean:68,bpCat:'Hematologic'},
+      {key:'id',mean:58,bpCat:'Infectious Disease'}
+    ];
+    PRCATS.forEach(function(pc) {
+      var score = s.packrat[pc.key];
+      if (score !== null && score !== undefined && !isNaN(score)) {
+        if (score < pc.mean - 20 && pkCritCats.indexOf(pc.bpCat)<0) pkCritCats.push(pc.bpCat);
+        else if (score < pc.mean - 10 && pkWeakCats.indexOf(pc.bpCat)<0) pkWeakCats.push(pc.bpCat);
+      }
+    });
+    // Merge into weakCats/strongCats
+    pkCritCats.concat(pkWeakCats).forEach(function(bc) {
+      if (s.weakCats.indexOf(bc)<0) s.weakCats.push(bc);
+    });
+  }
+
+  // Determine priority level for each cat
+  function catPriority(c) {
+    if (pkCritCats.indexOf(c) >= 0) return 'critical';
+    if (s.weakCats.indexOf(c) >= 0) return 'critical';
+    if (s.strongCats.indexOf(c) >= 0) return 'maintenance';
+    return 'high';
+  }
+
+  // EORE map: which cats each EORE covers
+  var eoreCats = {
+    peds:['Pediatrics','Pulmonary','Infectious Disease'],
+    womens:['Reproductive'],
+    fammed:['Cardiovascular','Endocrine','Gastrointestinal / Nutrition','Pulmonary','Musculoskeletal','Neurologic','Psychiatry','Dermatologic'],
+    im:['Cardiovascular','Pulmonary','Gastrointestinal / Nutrition','Renal','Endocrine','Hematologic','Infectious Disease','Neurologic'],
+    surgery:['Gastrointestinal / Nutrition','Musculoskeletal','Genitourinary','Pulmonary'],
+    em:['Cardiovascular','Neurologic','Pulmonary','Musculoskeletal','Infectious Disease'],
+    psych:['Psychiatry']
+  };
+
+  // Build daily plan
+  var plan = [];
+  var currentCatIdx = 0;
+  var practiceExamDays = [];
+
+  // Figure out practice exam placement
+  if (s.practiceExams && totalDays >= 14) {
+    var px1Day = Math.floor(totalDays * 0.55);
+    var px2Day = Math.floor(totalDays * 0.85);
+    // Snap to weekend (Saturday)
+    var d1 = new Date(startDate); d1.setDate(d1.getDate() + px1Day);
+    while (d1.getDay() !== 6) d1.setDate(d1.getDate() + 1);
+    var d2 = new Date(startDate); d2.setDate(d2.getDate() + px2Day);
+    while (d2.getDay() !== 6) d2.setDate(d2.getDate() + 1);
+    practiceExamDays.push(d1.toDateString());
+    practiceExamDays.push(d2.toDateString());
+  }
+
+  // EORE prep: days before each EORE, insert EORE-specific tasks
+  var eorePrepDays = {}; // dateString -> eore key
+  var eoreExamDays = {}; // dateString -> eore key
+  eoresSorted.forEach(function(e) {
+    var ed = new Date(s.eoreDates[e] + 'T12:00:00');
+    eoreExamDays[ed.toDateString()] = e;
+    // 3 days before = prep days
+    for (var i=1; i<=3; i++) {
+      var pd = new Date(ed); pd.setDate(pd.getDate()-i);
+      if (!eorePrepDays[pd.toDateString()]) eorePrepDays[pd.toDateString()] = [];
+      eorePrepDays[pd.toDateString()].push(e);
+    }
+  });
+
+  // Cat cycling: roughly how many days per cat based on priority
+  function daysForCat(c) {
+    var p = catPriority(c);
+    if (p === 'critical') return Math.max(3, Math.floor(totalDays * 0.08));
+    if (p === 'maintenance') return Math.max(1, Math.floor(totalDays * 0.03));
+    return Math.max(2, Math.floor(totalDays * 0.05));
+  }
+
+  var catSchedule = []; // array of {cat, days} covering all days
+  var scheduledDays = 0;
+  while (scheduledDays < totalDays) {
+    if (currentCatIdx >= orderedCats.length) currentCatIdx = 0;
+    var cat = orderedCats[currentCatIdx];
+    var d = Math.min(daysForCat(cat), totalDays - scheduledDays);
+    catSchedule.push({cat:cat, days:d});
+    scheduledDays += d;
+    currentCatIdx++;
+  }
+
+  // Flatten cat schedule to day->cat map
+  var dayCat = {};
+  var dayCount = 0;
+  catSchedule.forEach(function(cs) {
+    for (var i=0; i<cs.days; i++) {
+      dayCat[dayCount] = cs.cat;
+      dayCount++;
+    }
+  });
+
+  // CTP episode index per cat
+  var ctpIdx = {};
+  Object.keys(CTP_EPISODES).forEach(function(k){ ctpIdx[k] = 0; });
+
+  function nextCTP(cat) {
+    var eps = CTP_EPISODES[cat] || [];
+    if (!eps.length) return null;
+    var ep = eps[ctpIdx[cat] % eps.length];
+    ctpIdx[cat]++;
+    return ep;
+  }
+
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function formatDate(d) { return monthNames[d.getMonth()] + ' ' + d.getDate(); }
+  function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+
+  var qbankName = s.qbank === 'rosh' ? 'Rosh' : s.qbank === 'uworld' ? 'UWorld' : s.qbank === 'amboss' ? 'AMBOSS' : 'Question bank';
+
+  // Build each days tasks
+  for (var di = 0; di < totalDays; di++) {
+    var date = new Date(startDate);
+    date.setDate(date.getDate() + di);
+    var dateStr = date.toDateString();
+    var we = isWeekend(date);
+    var cat = dayCat[di] || orderedCats[di % orderedCats.length];
+    var pri = catPriority(cat);
+    var tasks = [];
+    var isPX = practiceExamDays.indexOf(dateStr) >= 0;
+    var isEOREDay = !!eoreExamDays[dateStr];
+    var isPrepDay = !!eorePrepDays[dateStr];
+    var eoreKey = eoreExamDays[dateStr];
+    var prepKeys = eorePrepDays[dateStr] || [];
+
+    var id_prefix = 'd' + di + '_';
+    var tid = 0;
+    function addTask(label) { tasks.push({id: id_prefix + (tid++), l: label}); }
+
+    // Anki
+    if (s.anki) {
+      if (isEOREDay || (isPrepDay && !we)) {
+        addTask('Anki -- daily reviews (15 min, light)' + tag('Anki','#EEEDFE','#3C3489'));
+      } else {
+        addTask('Anki -- daily reviews' + tag('Anki','#EEEDFE','#3C3489'));
+      }
+    }
+
+    if (isPX) {
+      var pxNum = practiceExamDays.indexOf(dateStr) + 1;
+      addTask('TAKE FULL PRACTICE EXAM ' + pxNum + ' -- 120 Qs, strictly timed (2 hrs 40 min), exam conditions' + tag('practice exam ' + pxNum,'#E6F1FB','#185FA5'));
+      addTask('Score and categorize every wrong answer by NCCPA blueprint category' + tag('review','#f0f0ec','#6b6b6b'));
+      addTask('List your top 5 weakest blueprint categories -- drives your next study block' + tag('review','#f0f0ec','#6b6b6b'));
+    } else if (isEOREDay) {
+      var eLbl = EORE_LABELS[eoreKey] || eoreKey;
+      addTask('TAKE ' + eLbl.toUpperCase() + ' EORE' + tag('exam','#FBEAF0','#993556'));
+      addTask('After exam: log all weak topics by name for future ' + qbankName + ' blocks' + tag('review','#f0f0ec','#6b6b6b'));
+    } else if (isPrepDay) {
+      // EORE prep day
+      prepKeys.forEach(function(pk) {
+        var eLbl = EORE_LABELS[pk] || pk;
+        var eCats = eoreCats[pk] || [];
+        eCats.slice(0,2).forEach(function(ec) {
+          addTask(qbankName + ' -- ' + ec + ' ' + (we?'25':'15') + ' Qs focused: high-yield ' + eLbl + ' EORE prep' + tag('EORE prep','#FBEAF0','#993556') + tag(pri,'#FAEEDA','#854F0B'));
+        });
+      });
+      // Video
+      if (s.videos.indexOf('ctp') >= 0) {
+        var ep = nextCTP(prepKeys[0] ? (eoreCats[prepKeys[0]]||[])[0]||cat : cat);
+        if (ep) addTask('Listen/Watch -- YouTube or Spotify: ' + ep + tag('Cram the PANCE','#E1F5EE','#0F6E56'));
+      } else if (s.videos.length && s.videos.indexOf('none') < 0) {
+        addTask('Video review -- ' + cat + ' focused (' + s.videos.join(', ') + ')' + tag('video','#E1F5EE','#0F6E56'));
+      }
+    } else {
+      // Normal study day
+      var qCount = we ? 25 : 15;
+      var qMode = di > totalDays * 0.5 ? 'timed' : 'untimed, read ALL explanations';
+      addTask(qbankName + ' -- ' + cat + ' ' + qCount + ' Qs ' + qMode + tag(qbankName,'#E6F1FB','#185FA5') + tag(pri==='critical'?'critical':pri==='maintenance'?'maintenance':'high priority', pri==='critical'?'#FAECE7':pri==='maintenance'?'#EAF3DE':'#FAEEDA', pri==='critical'?'#993C1D':pri==='maintenance'?'#3B6D11':'#854F0B'));
+
+      // Video
+      if (s.videos.indexOf('ctp') >= 0) {
+        var ep2 = nextCTP(cat);
+        if (ep2) addTask('Listen/Watch -- YouTube or Spotify: ' + ep2 + tag('Cram the PANCE','#E1F5EE','#0F6E56'));
+      } else if (s.videos.indexOf('none') < 0 && s.videos.length) {
+        addTask('Video review -- ' + cat + ' focused (' + s.videos.join(', ') + ')' + tag('video','#E1F5EE','#0F6E56'));
+      }
+
+      // Weekend: second category
+      if (we && di > 0) {
+        var cat2 = orderedCats[(orderedCats.indexOf(cat) + 1) % orderedCats.length];
+        var pri2 = catPriority(cat2);
+        addTask(qbankName + ' -- ' + cat2 + ' 20 Qs mixed' + tag(qbankName,'#E6F1FB','#185FA5') + tag(pri2==='critical'?'critical':pri2==='maintenance'?'maintenance':'high priority',pri2==='critical'?'#FAECE7':pri2==='maintenance'?'#EAF3DE':'#FAEEDA',pri2==='critical'?'#993C1D':pri2==='maintenance'?'#3B6D11':'#854F0B'));
+      }
+
+      // Timed mixed block on Fridays after week 2
+      if (date.getDay() === 5 && di > 14) {
+        addTask(qbankName + ' -- Mixed PANCE 20 Qs timed -- all categories' + tag('timed','#E6F1FB','#185FA5'));
+      }
+
+      // Review note
+      if (pri === 'critical') {
+        addTask('Review wrong answers thoroughly -- add one-liners to Never Miss Again tab' + tag('review','#f0f0ec','#6b6b6b'));
+      }
+    }
+
+    // Final week messaging
+    if (di >= totalDays - 2) {
+      tasks = [];
+      if (s.anki) addTask('Anki -- final light reviews (15 min max)' + tag('Anki','#EEEDFE','#3C3489'));
+      if (di === totalDays - 1) {
+        addTask('Read through your personal HY notes and quick references -- no new material' + tag('review','#f0f0ec','#6b6b6b'));
+        addTask('Confirm logistics: test center, valid ID, arrival time, snacks' + tag('logistics','#f0f0ec','#6b6b6b'));
+        addTask('Trust the work. You have done everything right.' + tag('exam eve','#EAF3DE','#3B6D11'));
+      } else {
+        addTask(qbankName + ' -- Light 20 Qs mixed timed -- confidence builder only' + tag(qbankName,'#E6F1FB','#185FA5'));
+        addTask('Review HY drug first-lines and screening guidelines across all categories' + tag('review','#f0f0ec','#6b6b6b'));
+      }
+    }
+
+    plan.push({
+      di: di,
+      dy: dayNames[date.getDay()],
+      dt: formatDate(date),
+      dateStr: dateStr,
+      wk: we,
+      cat: cat,
+      tasks: tasks,
+      isPX: isPX,
+      isEOREDay: isEOREDay,
+      isPrepDay: isPrepDay,
+      eoreKey: eoreKey || null,
+      prepKeys: prepKeys
+    });
+  }
+
+  return buildHTML(s, plan, examDate, startDate, totalDays);
+}
+
+function tag(txt, bg, col) {
+  return '<span style="display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;margin-left:3px;vertical-align:middle;background:' + bg + ';color:' + col + '">' + txt + '</span>';
+}
+
+function buildHTML(s, plan, examDate, startDate, totalDays) {
+  // Group into weeks
+  var weeks = [];
+  var wk = [];
+  plan.forEach(function(d, i) {
+    wk.push(d);
+    if (wk.length === 7 || i === plan.length-1) { weeks.push(wk); wk = []; }
+  });
+
+  var wkLabelArr = weeks.map(function(w, i) {
+    return 'Wk ' + (i+1) + ': ' + w[0].dt + (w.length>1?' - '+w[w.length-1].dt:'');
+  });
+
+  var planJSON = JSON.stringify(plan.map(function(d) {
+    return {di:d.di,dy:d.dy,dt:d.dt,wk:d.wk,tasks:d.tasks,isPX:d.isPX,isEOREDay:d.isEOREDay,isPrepDay:d.isPrepDay,eoreKey:d.eoreKey,prepKeys:d.prepKeys};
+  }));
+
+  var wkLabelsJSON = JSON.stringify(wkLabelArr);
+  var examDateStr = examDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var startDateStr = startDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  var qbankName = s.qbank === 'rosh' ? 'Rosh' : s.qbank === 'uworld' ? 'UWorld' : s.qbank === 'amboss' ? 'AMBOSS' : 'Question bank';
+  var wdLbl = s.wdHours + ' hrs';
+  var weLbl = s.weHours + ' hrs';
+  var examISO = examDate.toISOString().slice(0,10);
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PANCE Dashboard -- ${s.name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#f0f0ec;--text:#1a1a1a;--text2:#6b6b6b;--text3:#9b9b9b;--border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--green:#1D9E75;--r:8px;--rl:12px;--font:"Inter",-apple-system,BlinkMacSystemFont,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1c1c;--bg2:#242424;--bg3:#2c2c2c;--text:#f0f0f0;--text2:#a0a0a0;--text3:#666;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2)}}
+body{font-family:var(--font);background:var(--bg3);color:var(--text);min-height:100vh}
+.app{max-width:800px;margin:0 auto;background:var(--bg);min-height:100vh;padding-bottom:4rem}
+.topbar{padding:1rem 1.5rem;border-bottom:.5px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:var(--bg);z-index:100}
+.logo{width:32px;height:32px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.toptitle{font-size:14px;font-weight:500;flex:1}
+.exambadge{font-size:11px;padding:3px 8px;border-radius:20px;background:#EAF3DE;color:#3B6D11;font-weight:500;white-space:nowrap}
+.tabbar{display:flex;border-bottom:.5px solid var(--border);background:var(--bg);position:sticky;top:57px;z-index:99;overflow-x:auto}
+.tabbar::-webkit-scrollbar{height:0}
+.tabBtn{flex-shrink:0;padding:11px 14px;font-size:12px;font-weight:500;color:var(--text2);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;font-family:var(--font);white-space:nowrap}
+.tabBtn.act{color:var(--text);border-bottom:2px solid var(--text)}
+.pane{display:none;padding:1.25rem 1.5rem}.pane.show{display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:var(--bg2);border-radius:var(--r);padding:8px 10px}
+.statval{font-size:20px;font-weight:500}
+.statlbl{font-size:10px;color:var(--text2);margin-top:1px}
+.pbwrap{background:var(--bg2);border-radius:3px;height:4px;margin:8px 0 3px}
+.pb{height:4px;border-radius:3px;background:var(--green);transition:width .3s}
+.pblbl{font-size:10px;color:var(--text2)}
+.wnav{display:flex;flex-wrap:wrap;gap:5px;margin:1rem 0 .75rem}
+.wbtn{font-size:11px;padding:4px 9px;border:.5px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.wbtn.act{background:var(--bg2);color:var(--text);font-weight:500;border-color:var(--border2)}
+.phdr{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:1rem 0 .5rem}
+.dc{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.75rem 1rem;margin-bottom:7px}
+.dc.wk{background:var(--bg2)}
+.dc.pe{border:1.5px solid #185FA5}
+.dc.ed{border:1.5px solid #D4537E}
+.dc.pp{border:1.5px solid #854F0B}
+.dh{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.dday{font-size:12px;font-weight:500}
+.ddate{font-size:11px;color:var(--text2)}
+.dtime{font-size:10px;padding:2px 6px;border-radius:3px;background:var(--bg2);color:var(--text2);margin-left:auto}
+.banner{border-radius:var(--r);padding:6px 10px;margin-bottom:7px;font-size:11px;font-weight:500}
+.bpk{background:#FBEAF0;color:#993556;border:.5px solid #F4C0D1}
+.bbl{background:#E6F1FB;color:#185FA5;border:.5px solid #B5D4F4}
+.bor{background:#FAEEDA;color:#854F0B;border:.5px solid #F0C87A}
+.tlist{display:flex;flex-direction:column;gap:5px}
+.ti{display:flex;align-items:flex-start;gap:7px}
+.ti input[type=checkbox]{margin-top:2px;flex-shrink:0;cursor:pointer;width:14px;height:14px;accent-color:var(--green)}
+.tlab{font-size:12px;line-height:1.5;cursor:pointer;color:var(--text)}
+.tlab.dn{text-decoration:line-through;color:var(--text3)}
+.okbadge{font-size:10px;color:var(--green);margin-left:auto}
+.nf{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.9rem;margin-bottom:.9rem}
+.fr{display:flex;gap:7px;margin-bottom:7px;flex-wrap:wrap}
+.fi{flex:1;min-width:150px;font-size:12px;padding:7px 10px;border:.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
+.fi:focus{border-color:var(--border2)}
+.fsel{font-size:12px;padding:7px 8px;border:.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
+.fbtn2{font-size:12px;padding:7px 12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);cursor:pointer;font-family:var(--font)}
+.fbtn2:hover{background:var(--bg2)}
+.filterrow{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.75rem}
+.filtbtn{font-size:11px;padding:3px 8px;border:.5px solid var(--border);border-radius:20px;background:var(--bg);color:var(--text2);cursor:pointer;font-family:var(--font)}
+.filtbtn.act{background:var(--bg2);color:var(--text);font-weight:500;border-color:var(--border2)}
+.sortrow{display:flex;align-items:center;gap:8px;margin-bottom:.75rem;flex-wrap:wrap}
+.sortrow label{font-size:11px;color:var(--text2)}
+.sortrow select{font-size:11px;padding:4px 6px;border:.5px solid var(--border);border-radius:var(--r);background:var(--bg2);color:var(--text);font-family:var(--font);outline:none}
+.nmaentry{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.7rem .9rem;margin-bottom:5px;display:flex;align-items:flex-start;gap:8px}
+.nmaeb{flex:1;min-width:0}
+.nmaet{font-size:13px;line-height:1.4;word-break:break-word;color:var(--text)}
+.nmaet.rv{text-decoration:line-through;color:var(--text3)}
+.nmaem{display:flex;align-items:center;gap:7px;margin-top:4px;flex-wrap:wrap}
+.nmacat{font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500}
+.nmadt{font-size:10px;color:var(--text3)}
+.nmaact{display:flex;gap:4px;flex-shrink:0}
+.ibtn{background:none;border:none;cursor:pointer;padding:3px;color:var(--text2);font-size:15px;border-radius:4px;display:flex;align-items:center;font-family:var(--font)}
+.ibtn:hover{color:var(--text);background:var(--bg2)}
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+.sechdr{font-size:10px;font-weight:500;color:var(--text2);letter-spacing:.06em;text-transform:uppercase;margin:.9rem 0 .4rem;padding-bottom:3px;border-bottom:.5px solid var(--border)}
+.errmsg{font-size:11px;color:#A32D2D}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0 1rem}
+.leg{font-size:10px;padding:2px 7px;border-radius:3px}
+textarea.fi{height:70px;resize:vertical;line-height:1.5;width:100%;margin-bottom:7px}
+
+.bp-cat{margin-bottom:1.25rem}
+.bp-cat-hdr{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.bp-cat-name{font-size:13px;font-weight:600}
+.bp-badge{font-size:11px;padding:2px 7px;border-radius:3px}
+.bp-cat-prog{font-size:11px;color:var(--text2);margin-left:auto}
+.bp-mini-bar{height:3px;border-radius:3px;margin-bottom:8px}
+.bp-mini-bar-bg{background:var(--bg2);border-radius:3px;height:3px;margin-bottom:8px}
+.bp-group{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.65rem .9rem;margin-bottom:5px}
+.bp-grp-hdr{font-size:11px;font-weight:500;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between}
+.bp-cb{margin-top:2px;flex-shrink:0;cursor:pointer;width:14px;height:14px;accent-color:var(--green)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">PA</div>
+    <span class="toptitle">PANCE Dashboard -- ${s.name}</span>
+    <span class="exambadge">Exam: ${examDateStr}</span>
+  </div>
+  <div class="tabbar" id="tabbar">
+    <button class="tabBtn act" data-tab="plan">Study Plan</button>
+    <button class="tabBtn" data-tab="nma">Never Miss Again</button>
+    <button class="tabBtn" data-tab="drugs">HY Drugs</button>
+    <button class="tabBtn" data-tab="mnemonics">Mnemonics</button>
+    <button class="tabBtn" data-tab="blueprint">Blueprint</button>
+  </div>
+
+  <div id="pane-plan" class="pane show">
+    <div style="background:linear-gradient(135deg,#1D9E75 0%,#0F6E56 100%);border-radius:var(--rl);padding:1.25rem 1.5rem;margin-bottom:1.25rem;color:#fff">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:500;opacity:.8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">PANCE Exam Day</div>
+          <div style="font-size:14px;font-weight:500;opacity:.9">${examDateStr}</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <div style="text-align:center"><div style="font-size:36px;font-weight:700;line-height:1" id="cd-days">--</div><div style="font-size:10px;opacity:.75;margin-top:3px;text-transform:uppercase;letter-spacing:.05em">days</div></div>
+          <div style="font-size:28px;font-weight:300;opacity:.5;padding-bottom:16px">:</div>
+          <div style="text-align:center"><div style="font-size:36px;font-weight:700;line-height:1" id="cd-hours">--</div><div style="font-size:10px;opacity:.75;margin-top:3px;text-transform:uppercase;letter-spacing:.05em">hours</div></div>
+          <div style="font-size:28px;font-weight:300;opacity:.5;padding-bottom:16px">:</div>
+          <div style="text-align:center"><div style="font-size:36px;font-weight:700;line-height:1" id="cd-mins">--</div><div style="font-size:10px;opacity:.75;margin-top:3px;text-transform:uppercase;letter-spacing:.05em">mins</div></div>
+          <div style="font-size:28px;font-weight:300;opacity:.5;padding-bottom:16px">:</div>
+          <div style="text-align:center"><div style="font-size:36px;font-weight:700;line-height:1" id="cd-secs">--</div><div style="font-size:10px;opacity:.75;margin-top:3px;text-transform:uppercase;letter-spacing:.05em">secs</div></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;background:rgba(255,255,255,.15);border-radius:4px;height:4px"><div id="cd-bar" style="height:4px;border-radius:4px;background:#fff;transition:width 1s linear;width:0%"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:5px">
+        <span style="font-size:10px;opacity:.65">Study start: ${startDateStr}</span>
+        <span style="font-size:10px;opacity:.65" id="cd-pct">-- % of prep time used</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="statval" id="p-pct">0%</div><div class="statlbl">progress</div></div>
+      <div class="stat"><div class="statval" id="p-done">0</div><div class="statlbl">tasks done</div></div>
+      <div class="stat"><div class="statval" id="p-left">0</div><div class="statlbl">remaining</div></div>
+      <div class="stat"><div class="statval" id="p-days">0</div><div class="statlbl">days to exam</div></div>
+    </div>
+    <div class="pbwrap"><div class="pb" id="p-pb" style="width:0%"></div></div>
+    <div class="pblbl" id="p-pblbl"></div>
+    <div class="legend">
+      <span class="leg" style="background:#FAECE7;color:#993C1D">critical / weak</span>
+      <span class="leg" style="background:#FAEEDA;color:#854F0B">high priority</span>
+      <span class="leg" style="background:#EAF3DE;color:#3B6D11">maintenance</span>
+      <span class="leg" style="background:#E6F1FB;color:#185FA5">${qbankName} / exam</span>
+      <span class="leg" style="background:#EEEDFE;color:#3C3489">Anki</span>
+      <span class="leg" style="background:#FBEAF0;color:#993556">EORE prep</span>
+      <span class="leg" style="background:#E1F5EE;color:#0F6E56">video</span>
+    </div>
+    <div class="wnav" id="wnav"></div>
+    <div id="plan-content"></div>
+  </div>
+
+  <div id="pane-nma" class="pane">
+    <div class="stats">
+      <div class="stat"><div class="statval" id="n-total">0</div><div class="statlbl">total</div></div>
+      <div class="stat"><div class="statval" id="n-new">0</div><div class="statlbl">this week</div></div>
+      <div class="stat"><div class="statval" id="n-rvd">0</div><div class="statlbl">reviewed</div></div>
+      <div class="stat"><div class="statval" id="n-cats">0</div><div class="statlbl">categories</div></div>
+    </div>
+    <p style="font-size:12px;color:var(--text2);margin:8px 0 1rem">One-liner hooks from every question you should have known. Review every Sunday.</p>
+    <div class="nf">
+      <div class="fr">
+        <input class="fi" type="text" id="nma-hook" placeholder="e.g. Condyloma lata = syphilis, not HPV">
+        <select class="fsel" id="nma-cat" style="width:175px">
+          <option value="">-- category --</option>
+          <option>Cardiovascular</option><option>Dermatologic</option><option>Endocrine</option>
+          <option>Eyes, Ears, Nose, Throat</option><option>Gastrointestinal / Nutrition</option>
+          <option>Genitourinary</option><option>Hematologic</option><option>Infectious Disease</option>
+          <option>Musculoskeletal</option><option>Neurologic</option><option>Psychiatry</option>
+          <option>Pulmonary</option><option>Renal</option><option>Reproductive</option>
+          <option>Pediatrics</option><option>Family Medicine</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="fbtn2" onclick="addNMA()">+ Add entry</button>
+        <span class="errmsg" id="nma-err"></span>
+      </div>
+    </div>
+    <div class="filterrow" id="nma-filters"></div>
+    <div class="sortrow">
+      <label>Sort by</label>
+      <select id="nma-sort" onchange="renderNMA()">
+        <option value="newest">newest first</option>
+        <option value="oldest">oldest first</option>
+        <option value="category">category</option>
+        <option value="unreviewed">unreviewed first</option>
+      </select>
+      <button class="fbtn2" onclick="markAllRvd()" style="font-size:11px;margin-left:auto;padding:4px 9px">Mark all reviewed</button>
+    </div>
+    <div id="nma-list"></div>
+  </div>
+
+  <div id="pane-drugs" class="pane">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">First-line and second-line treatments. Filter or search. Add your own at the bottom.</p>
+    <div class="filterrow" id="drug-filters"></div>
+    <div class="fr" style="margin-bottom:.75rem"><input class="fi" type="text" id="drug-search" placeholder="Search condition or drug..." oninput="renderDrugs()"></div>
+    <div id="drug-list" style="margin-bottom:1.5rem"></div>
+    <div class="sechdr">Add your own</div>
+    <div class="nf">
+      <div class="fr">
+        <input class="fi" type="text" id="d-condition" placeholder="Condition">
+        <input class="fi" type="text" id="d-first" placeholder="First-line treatment">
+      </div>
+      <div class="fr">
+        <input class="fi" type="text" id="d-second" placeholder="Second-line (optional)">
+        <select class="fsel" id="d-cat" style="width:175px">
+          <option value="">-- category --</option>
+          <option>Cardiovascular</option><option>Dermatologic</option><option>Endocrine</option>
+          <option>Eyes, Ears, Nose, Throat</option><option>Gastrointestinal</option>
+          <option>Genitourinary</option><option>Hematologic</option><option>Infectious Disease</option>
+          <option>Musculoskeletal</option><option>Neurologic</option><option>Psychiatry</option>
+          <option>Pulmonary</option><option>Renal</option><option>Reproductive</option><option>Pediatrics</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="fbtn2" onclick="addDrug()">+ Add</button>
+        <span class="errmsg" id="d-err"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="pane-mnemonics" class="pane">
+    <p style="font-size:12px;color:var(--text2);margin-bottom:1rem">High-yield mnemonics. Filter, search, and add your own.</p>
+    <div class="filterrow" id="mn-filters"></div>
+    <div class="fr" style="margin-bottom:.75rem"><input class="fi" type="text" id="mn-search" placeholder="Search mnemonics..." oninput="renderMnemonics()"></div>
+    <div id="mn-list" style="margin-bottom:1.5rem"></div>
+    <div class="sechdr">Add your own</div>
+    <div class="nf">
+      <div class="fr">
+        <input class="fi" type="text" id="mn-name" placeholder="Mnemonic name (e.g. MUDPILES)">
+        <select class="fsel" id="mn-cat" style="width:175px">
+          <option value="">-- category --</option>
+          <option>Cardiovascular</option><option>Dermatologic</option><option>Endocrine</option>
+          <option>Eyes, Ears, Nose, Throat</option><option>Gastrointestinal</option>
+          <option>Genitourinary</option><option>Hematologic</option><option>Infectious Disease</option>
+          <option>Musculoskeletal</option><option>Neurologic</option><option>Psychiatry</option>
+          <option>Pulmonary</option><option>Renal</option><option>Reproductive</option><option>Pediatrics</option>
+        </select>
+      </div>
+      <div class="fr"><input class="fi" type="text" id="mn-topic" placeholder="What it helps you remember"></div>
+      <textarea class="fi" id="mn-body" placeholder="Full mnemonic content..."></textarea>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="fbtn2" onclick="addMnemonic()">+ Add</button>
+        <span class="errmsg" id="mn-err"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BLUEPRINT -->
+  <div id="pane-blueprint" class="pane">
+    <div class="stats">
+      <div class="stat"><div class="statval" id="bp-total">0</div><div class="statlbl">total topics</div></div>
+      <div class="stat"><div class="statval" id="bp-done">0</div><div class="statlbl">covered</div></div>
+      <div class="stat"><div class="statval" id="bp-left">0</div><div class="statlbl">remaining</div></div>
+      <div class="stat"><div class="statval" id="bp-pct">0%</div><div class="statlbl">complete</div></div>
+    </div>
+    <div class="pbwrap"><div class="pb" id="bp-pb" style="width:0%"></div></div>
+    <div class="pblbl" id="bp-pblbl"></div>
+    <p style="font-size:12px;color:var(--text2);margin:8px 0 1rem">Check off each NCCPA blueprint condition as you study it. Progress saves automatically.</p>
+    <div class="filterrow" id="bp-filters"></div>
+    <div id="bp-list" style="margin-top:.5rem"></div>
+  </div>
+
+</div>
+<script>
+var PSK='pance_gen_v1', NSK='nma_gen_v1', DRGSK='drugs_gen_v1', MNSK='mn_gen_v1';
+var plan=${planJSON};
+var wkLabels=${wkLabelsJSON};
+var examISO='${examISO}';
+var startISO='${startDate.toISOString().slice(0,10)}';
+var wdHours=${s.wdHours};
+var weHours=${s.weHours};
+
+document.getElementById('tabbar').addEventListener('click', function(e) {
+  var btn = e.target.closest('.tabBtn');
+  if (!btn) return;
+  document.querySelectorAll('.tabBtn').forEach(function(b){ b.classList.remove('act'); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('show'); });
+  btn.classList.add('act');
+  document.getElementById('pane-' + btn.dataset.tab).classList.add('show');
+});
+
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function uid(){return 'u'+Date.now()+Math.random().toString(36).slice(2,6);}
+function fmtDate(d){return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+
+var pChk=load(PSK,{});
+var activeWk=0;
+
+function allPIds(){var ids=[];plan.forEach(function(d){d.tasks.forEach(function(t){ids.push(t.id);});});return ids;}
+function updatePlanStats(){
+  var all=allPIds(),done=all.filter(function(id){return pChk[id];}).length;
+  var pct=Math.round(done/all.length*100);
+  document.getElementById('p-pb').style.width=pct+'%';
+  document.getElementById('p-pct').textContent=pct+'%';
+  document.getElementById('p-done').textContent=done;
+  document.getElementById('p-left').textContent=all.length-done;
+  var diff=Math.max(0,Math.round((new Date(examISO+'T08:00:00')-new Date())/864e5));
+  document.getElementById('p-days').textContent=diff;
+  document.getElementById('p-pblbl').textContent=pct+'% complete ('+done+'/'+all.length+' tasks)';
+}
+
+// Group plan into weeks
+var planWeeks=[];
+var wk=[];
+plan.forEach(function(d,i){wk.push(d);if(wk.length===7||i===plan.length-1){planWeeks.push(wk);wk=[];}});
+
+function renderWNav(){
+  var nav=document.getElementById('wnav');nav.innerHTML='';
+  planWeeks.forEach(function(w,i){
+    var b=document.createElement('button');
+    b.className='wbtn'+(i===activeWk?' act':'');
+    b.textContent=wkLabels[i]||('Week '+(i+1));
+    b.setAttribute('data-w',i);
+    b.onclick=function(){activeWk=parseInt(this.getAttribute('data-w'));renderWNav();renderPlan();};
+    nav.appendChild(b);
+  });
+}
+
+function renderPlan(){
+  var cont=document.getElementById('plan-content');if(!cont)return;
+  var days=planWeeks[activeWk]||[];
+  var html='';
+  days.forEach(function(day){
+    var allDone=day.tasks.every(function(t){return pChk[t.id];});
+    var cls='dc'+(day.wk?' wk':'')+(day.isPX?' pe':'')+(day.isEOREDay?' ed':'')+(day.isPrepDay&&!day.isEOREDay?' pp':'');
+    html+='<div class="'+cls+'">';
+    if(day.isPX) html+='<div class="banner bbl">PRACTICE EXAM -- Full 120-Question PANCE Simulation</div>';
+    if(day.isEOREDay) html+='<div class="banner bpk">EORE TODAY</div>';
+    if(day.isPrepDay&&!day.isEOREDay) html+='<div class="banner bor">EORE PREP DAY</div>';
+    html+='<div class="dh"><span class="dday">'+day.dy+'</span><span class="ddate">'+day.dt+'</span>'+(allDone?'<span class="okbadge">done</span>':'')+'<span class="dtime">'+(day.wk?weHours+' hrs':wdHours+' hrs')+'</span></div><div class="tlist">';
+    day.tasks.forEach(function(t){
+      var done=!!pChk[t.id];
+      var cb='<input type="checkbox" class="plan-cb" data-tid="'+t.id+'" '+(done?'checked':'')+' />';
+      var lbl='<label class="tlab'+(done?' dn':'')+'" data-for="'+t.id+'">'+t.l+'</label>';
+      html+='<div class="ti">'+cb+lbl+'</div>';
+    });
+    html+='</div></div>';
+  });
+  cont.innerHTML=html;
+  // Attach events after render
+  cont.querySelectorAll('.plan-cb').forEach(function(cb){
+    cb.addEventListener('change',function(){togP(this.getAttribute('data-tid'));});
+  });
+  cont.querySelectorAll('label[data-for]').forEach(function(lbl){
+    lbl.addEventListener('click',function(){
+      var id=this.getAttribute('data-for');
+      var cb=cont.querySelector('[data-tid="'+id+'"]');
+      if(cb){cb.checked=!cb.checked;togP(id);}
+    });
+  });
+}
+
+function togP(id){pChk[id]=!pChk[id];save(PSK,pChk);updatePlanStats();renderPlan();}
+
+// NMA
+var catBg={'Cardiovascular':'#E6F1FB','Dermatologic':'#FAECE7','Endocrine':'#EAF3DE','Eyes, Ears, Nose, Throat':'#EEEDFE','Gastrointestinal / Nutrition':'#FAEEDA','Gastrointestinal':'#FAEEDA','Genitourinary':'#E1F5EE','Hematologic':'#FCEBEB','Infectious Disease':'#FAECE7','Musculoskeletal':'#FBEAF0','Neurologic':'#EEEDFE','Psychiatry':'#F1EFE8','Pulmonary':'#E1F5EE','Renal':'#E6F1FB','Reproductive':'#FBEAF0','Pediatrics':'#FBEAF0','Family Medicine':'#EAF3DE'};
+var catTx={'Cardiovascular':'#0C447C','Dermatologic':'#712B13','Endocrine':'#27500A','Eyes, Ears, Nose, Throat':'#26215C','Gastrointestinal / Nutrition':'#633806','Gastrointestinal':'#633806','Genitourinary':'#085041','Hematologic':'#791F1F','Infectious Disease':'#712B13','Musculoskeletal':'#72243E','Neurologic':'#3C3489','Psychiatry':'#444441','Pulmonary':'#0F6E56','Renal':'#0C447C','Reproductive':'#72243E','Pediatrics':'#72243E','Family Medicine':'#173404'};
+var nmaData=load(NSK,[]);
+var nmaFilt='All';
+function updateNMAStats(){var ago=new Date(Date.now()-7*864e5);document.getElementById('n-total').textContent=nmaData.length;document.getElementById('n-new').textContent=nmaData.filter(function(e){return new Date(e.date)>=ago;}).length;document.getElementById('n-rvd').textContent=nmaData.filter(function(e){return e.reviewed;}).length;var cats={};nmaData.forEach(function(e){cats[e.cat]=1;});document.getElementById('n-cats').textContent=Object.keys(cats).length;}
+function renderNMAFilters(){var f=document.getElementById('nma-filters');if(!f)return;f.innerHTML='';var cats=['All'];nmaData.forEach(function(e){if(cats.indexOf(e.cat)<0)cats.push(e.cat);});cats.forEach(function(c){var cnt=c==='All'?nmaData.length:nmaData.filter(function(e){return e.cat===c;}).length;var b=document.createElement('button');b.className='filtbtn'+(nmaFilt===c?' act':'');b.textContent=c+(cnt>0?' ('+cnt+')':'');b.setAttribute('data-c',c);b.onclick=function(){nmaFilt=this.getAttribute('data-c');renderNMAFilters();renderNMA();};f.appendChild(b);});}
+function renderNMA(){
+  var cont=document.getElementById('nma-list');if(!cont)return;
+  var sort=document.getElementById('nma-sort').value;
+  var list=nmaData.slice();
+  if(nmaFilt!=='All')list=list.filter(function(e){return e.cat===nmaFilt;});
+  list.sort(function(a,b){
+    if(sort==='newest')return new Date(b.date)-new Date(a.date);
+    if(sort==='oldest')return new Date(a.date)-new Date(b.date);
+    if(sort==='category')return a.cat.localeCompare(b.cat);
+    if(sort==='unreviewed')return(a.reviewed?1:0)-(b.reviewed?1:0);
+    return 0;
+  });
+  if(!list.length){cont.innerHTML='<div class="empty">No entries yet.</div>';return;}
+  var html='',lastCat='',byCat=sort==='category';
+  list.forEach(function(e){
+    if(byCat&&e.cat!==lastCat){html+='<div class="sechdr">'+e.cat+'</div>';lastCat=e.cat;}
+    var bg=catBg[e.cat]||'#eee',tc=catTx[e.cat]||'#444';
+    var dt=new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    html+='<div class="nmaentry" data-eid="'+e.id+'">';
+    html+='<div class="nmaeb">';
+    html+='<div class="nmaet'+(e.reviewed?' rv':'')+'">'+e.hook+'</div>';
+    html+='<div class="nmaem"><span class="nmacat" style="background:'+bg+';color:'+tc+'">'+e.cat+'</span><span class="nmadt">'+dt+'</span></div>';
+    html+='</div>';
+    html+='<div class="nmaact">';
+    html+='<button class="ibtn nma-rvd-btn" data-eid="'+e.id+'" title="'+(e.reviewed?'Unreviewed':'Reviewed')+'">'+(e.reviewed?'&#8635;':'&#10003;')+'</button>';
+    html+='<button class="ibtn nma-del-btn" data-eid="'+e.id+'" title="Delete">&#128465;</button>';
+    html+='</div></div>';
+  });
+  cont.innerHTML=html;
+  cont.querySelectorAll('.nma-rvd-btn').forEach(function(b){b.addEventListener('click',function(){togRvd(this.getAttribute('data-eid'));});});
+  cont.querySelectorAll('.nma-del-btn').forEach(function(b){b.addEventListener('click',function(){delNMA(this.getAttribute('data-eid'));});});
+}
+
+function addNMA(){var hook=document.getElementById('nma-hook').value.trim();var cat=document.getElementById('nma-cat').value;var err=document.getElementById('nma-err');if(!hook){err.textContent='Enter a hook.';return;}if(!cat){err.textContent='Pick a category.';return;}err.textContent='';nmaData.unshift({id:uid(),hook:hook,cat:cat,date:new Date().toISOString().slice(0,10),reviewed:false});save(NSK,nmaData);document.getElementById('nma-hook').value='';document.getElementById('nma-cat').value='';updateNMAStats();renderNMAFilters();renderNMA();}
+document.getElementById('nma-hook').addEventListener('keydown',function(e){if(e.key==='Enter')addNMA();});
+function togRvd(id){var e=nmaData.find(function(x){return x.id===id;});if(e)e.reviewed=!e.reviewed;save(NSK,nmaData);updateNMAStats();renderNMA();}
+function delNMA(id){nmaData=nmaData.filter(function(x){return x.id!==id;});save(NSK,nmaData);updateNMAStats();renderNMAFilters();renderNMA();}
+function markAllRvd(){(nmaFilt==='All'?nmaData:nmaData.filter(function(e){return e.cat===nmaFilt;})).forEach(function(e){e.reviewed=true;});save(NSK,nmaData);updateNMAStats();renderNMA();}
+
+// HY DRUGS (core list)
+var seedDrugs=[
+  {id:'d1',cat:'Cardiovascular',condition:'Heart failure (HFrEF)',first:'ACE inhibitor + beta-blocker (carvedilol/metoprolol succinate) + loop diuretic (furosemide)',second:'ARB if ACE not tolerated; spironolactone for EF under 35%; SGLT2i (dapagliflozin)'},
+  {id:'d2',cat:'Cardiovascular',condition:'Hypertension (first-line)',first:'Thiazide diuretic, ACE inhibitor, ARB, or CCB (amlodipine)',second:'Beta-blocker (not first-line unless compelling indication); spironolactone for resistant HTN'},
+  {id:'d3',cat:'Cardiovascular',condition:'HTN + diabetes or CKD',first:'ACE inhibitor or ARB (nephroprotective)',second:'Add CCB or thiazide as second agent'},
+  {id:'d4',cat:'Cardiovascular',condition:'Atrial fibrillation (rate control)',first:'Beta-blocker or non-DHP CCB (diltiazem/verapamil)',second:'Digoxin (sedentary patients)'},
+  {id:'d5',cat:'Cardiovascular',condition:'AFib anticoagulation',first:'DOAC (apixaban, rivaroxaban)',second:'Warfarin if valvular AFib or renal failure'},
+  {id:'d6',cat:'Pulmonary',condition:'Asthma (mild intermittent)',first:'SABA (albuterol) PRN only',second:''},
+  {id:'d7',cat:'Pulmonary',condition:'Asthma (mild persistent)',first:'Low-dose ICS (budesonide/fluticasone) + SABA PRN',second:'LTRA (montelukast) if ICS not tolerated'},
+  {id:'d8',cat:'Pulmonary',condition:'COPD (stable)',first:'LAMA (tiotropium) -- preferred first-line',second:'LABA or LAMA+LABA combo; add ICS if 2+ exacerbations/year'},
+  {id:'d9',cat:'Pulmonary',condition:'CAP (outpatient, no comorbidities)',first:'Azithromycin or doxycycline',second:'Respiratory fluoroquinolone (levofloxacin) if comorbidities'},
+  {id:'d10',cat:'Pulmonary',condition:'Pulmonary embolism (anticoagulation)',first:'DOAC (rivaroxaban or apixaban)',second:'Heparin bridge then warfarin if DOAC contraindicated'},
+  {id:'d11',cat:'Infectious Disease',condition:'Lyme disease (early localized)',first:'Doxycycline 100mg BID x14-21 days',second:'Amoxicillin or cefuroxime (pregnancy or under 8 yrs)'},
+  {id:'d12',cat:'Infectious Disease',condition:'RMSF',first:'Doxycycline -- even in children',second:'Chloramphenicol (pregnancy only)'},
+  {id:'d13',cat:'Infectious Disease',condition:'Chlamydia',first:'Doxycycline 100mg BID x7 days',second:'Azithromycin 1g single dose (if adherence concern or pregnancy)'},
+  {id:'d14',cat:'Infectious Disease',condition:'Gonorrhea',first:'Ceftriaxone 500mg IM single dose',second:''},
+  {id:'d15',cat:'Infectious Disease',condition:'Syphilis (primary/secondary)',first:'Benzathine penicillin G 2.4 million units IM x1',second:'Doxycycline x14 days (if penicillin allergy)'},
+  {id:'d16',cat:'Infectious Disease',condition:'C. difficile',first:'Oral vancomycin 125mg QID x10 days',second:'Fidaxomicin (preferred for recurrent)'},
+  {id:'d17',cat:'Endocrine',condition:'Type 2 diabetes (first-line)',first:'Metformin',second:'SGLT2i or GLP-1 agonist (if ASCVD, HF, or CKD); sulfonylurea'},
+  {id:'d18',cat:'Endocrine',condition:'Hyperthyroidism (Graves)',first:'Methimazole (PTU in first trimester)',second:'RAI ablation or thyroidectomy (definitive)'},
+  {id:'d19',cat:'Endocrine',condition:'Hypothyroidism',first:'Levothyroxine (T4)',second:''},
+  {id:'d20',cat:'Gastrointestinal',condition:'GERD',first:'Lifestyle modifications + PPI x4-8 weeks',second:'H2 blocker (famotidine)'},
+  {id:'d21',cat:'Gastrointestinal',condition:'H. pylori peptic ulcer',first:'PPI + amoxicillin + clarithromycin x14 days (triple therapy)',second:'Bismuth quadruple therapy (if clarithromycin resistance)'},
+  {id:'d22',cat:'Musculoskeletal',condition:'Rheumatoid arthritis (DMARD)',first:'Methotrexate (MTX) -- anchor DMARD',second:'TNF inhibitor if MTX inadequate; add folic acid'},
+  {id:'d23',cat:'Musculoskeletal',condition:'Gout (acute attack)',first:'NSAIDs or colchicine',second:'Corticosteroids if NSAIDs/colchicine contraindicated'},
+  {id:'d24',cat:'Musculoskeletal',condition:'Gout (long-term prophylaxis)',first:'Allopurinol (target uric acid under 6 mg/dL)',second:'Febuxostat (if allopurinol intolerant)'},
+  {id:'d25',cat:'Neurologic',condition:'Migraine (acute)',first:'Triptan (sumatriptan) +/- NSAID',second:'IV metoclopramide or ketorolac in ED'},
+  {id:'d26',cat:'Neurologic',condition:'Migraine prophylaxis',first:'Propranolol or amitriptyline',second:'Valproate, topiramate, or verapamil'},
+  {id:'d27',cat:'Neurologic',condition:'Status epilepticus',first:'Lorazepam IV',second:'Fosphenytoin/levetiracetam IV if BZD fails'},
+  {id:'d28',cat:'Psychiatry',condition:'Major depressive disorder',first:'SSRI (sertraline, escitalopram)',second:'SNRI or bupropion'},
+  {id:'d29',cat:'Psychiatry',condition:'Bipolar I depression',first:'Quetiapine or lurasidone or lamotrigine',second:'Lithium + lamotrigine; NEVER antidepressant monotherapy'},
+  {id:'d30',cat:'Psychiatry',condition:'Tobacco cessation',first:'Varenicline (Chantix) -- most effective',second:'Bupropion SR or NRT; avoid varenicline in pregnancy'},
+  {id:'d31',cat:'Renal',condition:'Uncomplicated cystitis (women)',first:'Nitrofurantoin x5 days or TMP-SMX x3 days',second:'Fosfomycin single dose'},
+  {id:'d32',cat:'Renal',condition:'CKD (renoprotection)',first:'ACE inhibitor or ARB',second:'SGLT2i (empagliflozin)'},
+  {id:'d33',cat:'Reproductive',condition:'Bacterial vaginosis',first:'Metronidazole oral 500mg BID x7 days',second:'Clindamycin cream intravaginal'},
+  {id:'d34',cat:'Reproductive',condition:'Eclampsia (seizure prophylaxis)',first:'Magnesium sulfate IV',second:''},
+  {id:'d35',cat:'Dermatologic',condition:'Actinic keratosis',first:'Topical 5-FU or imiquimod (field treatment)',second:'Cryotherapy (individual lesions)'},
+  {id:'d36',cat:'Dermatologic',condition:'Scabies',first:'Permethrin 5% cream x8-14 hrs, repeat in 1 week',second:'Oral ivermectin (immunocompromised or crusted)'},
+  {id:'d37',cat:'Hematologic',condition:'Iron deficiency anemia',first:'Ferrous sulfate PO daily (with vitamin C)',second:'IV iron if PO intolerant or malabsorption'},
+  {id:'d38',cat:'Hematologic',condition:'DVT/PE anticoagulation',first:'DOAC (rivaroxaban or apixaban)',second:'Warfarin if mechanical valve or antiphospholipid syndrome'},
+];
+var userDrugs=load(DRGSK,[]);
+function allDrugs(){return seedDrugs.concat(userDrugs);}
+var drugFilt='All';
+function renderDrugFilters(){var f=document.getElementById('drug-filters');if(!f)return;f.innerHTML='';var cats=['All'];allDrugs().forEach(function(d){if(cats.indexOf(d.cat)<0)cats.push(d.cat);});cats.forEach(function(c){var cnt=c==='All'?allDrugs().length:allDrugs().filter(function(d){return d.cat===c;}).length;if(c!=='All'&&cnt===0)return;var b=document.createElement('button');b.className='filtbtn'+(drugFilt===c?' act':'');b.textContent=c+(cnt>0?' ('+cnt+')':'');b.setAttribute('data-c',c);b.onclick=function(){drugFilt=this.getAttribute('data-c');renderDrugFilters();renderDrugs();};f.appendChild(b);});}
+function renderDrugs(){
+  var cont=document.getElementById('drug-list');if(!cont)return;
+  var q=(document.getElementById('drug-search')||{}).value||'';
+  var ql=q.toLowerCase();
+  var list=allDrugs();
+  if(drugFilt!=='All')list=list.filter(function(d){return d.cat===drugFilt;});
+  if(ql)list=list.filter(function(d){return(d.condition+d.first+d.second+d.cat).toLowerCase().indexOf(ql)>=0;});
+  if(!list.length){cont.innerHTML='<div class="empty">No entries found.</div>';return;}
+  var grouped={};
+  list.forEach(function(d){if(!grouped[d.cat])grouped[d.cat]=[];grouped[d.cat].push(d);});
+  var html='';
+  Object.keys(grouped).forEach(function(cat){
+    html+='<div class="sechdr">'+cat+'</div>';
+    grouped[cat].forEach(function(d){
+      var bg=catBg[d.cat]||'#eee',tc=catTx[d.cat]||'#444';
+      html+='<div style="background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.75rem 1rem;margin-bottom:6px">';
+      html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">';
+      html+='<span style="font-size:13px;font-weight:500;color:var(--text)">'+d.condition+'</span>';
+      html+='<span style="font-size:10px;padding:2px 7px;border-radius:3px;background:'+bg+';color:'+tc+';white-space:nowrap">'+d.cat+'</span>';
+      html+='</div>';
+      html+='<div style="display:flex;align-items:flex-start;gap:8px'+(d.second?';margin-bottom:5px;':'')+'">';
+      html+='<span style="font-size:10px;font-weight:500;color:#1D9E75;padding:2px 6px;border-radius:3px;background:#EAF3DE;flex-shrink:0;margin-top:1px">1st</span>';
+      html+='<span style="font-size:12px;color:var(--text);line-height:1.5">'+d.first+'</span>';
+      html+='</div>';
+      if(d.second){
+        html+='<div style="display:flex;align-items:flex-start;gap:8px">';
+        html+='<span style="font-size:10px;font-weight:500;color:var(--text2);padding:2px 6px;border-radius:3px;background:var(--bg2);flex-shrink:0;margin-top:1px">2nd</span>';
+        html+='<span style="font-size:12px;color:var(--text2);line-height:1.5">'+d.second+'</span>';
+        html+='</div>';
+      }
+      if(d.custom) html+='<button class="drug-del-btn" data-did="'+d.id+'" style="margin-top:6px;font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0">remove</button>';
+      html+='</div>';
+    });
+  });
+  cont.innerHTML=html;
+  cont.querySelectorAll('.drug-del-btn').forEach(function(b){b.addEventListener('click',function(){deleteDrug(this.getAttribute('data-did'));});});
+}
+
+function addDrug(){var cond=document.getElementById('d-condition').value.trim();var first=document.getElementById('d-first').value.trim();var second=document.getElementById('d-second').value.trim();var cat=document.getElementById('d-cat').value;var err=document.getElementById('d-err');if(!cond||!first){err.textContent='Condition and first-line required.';return;}if(!cat){err.textContent='Pick a category.';return;}err.textContent='';userDrugs.unshift({id:uid(),cat:cat,condition:cond,first:first,second:second,custom:true});save(DRGSK,userDrugs);document.getElementById('d-condition').value='';document.getElementById('d-first').value='';document.getElementById('d-second').value='';document.getElementById('d-cat').value='';renderDrugFilters();renderDrugs();}
+function deleteDrug(id){userDrugs=userDrugs.filter(function(d){return d.id!==id;});save(DRGSK,userDrugs);renderDrugFilters();renderDrugs();}
+
+// MNEMONICS
+var seedMnemonics=[
+  {id:'m1',cat:'Renal',name:'MUDPILES',topic:'Anion gap metabolic acidosis',body:'M - Methanol\\nU - Uremia\\nD - DKA\\nP - Propylene glycol\\nI - Isoniazid / Iron\\nL - Lactic acidosis\\nE - Ethylene glycol\\nS - Salicylates'},
+  {id:'m2',cat:'Infectious Disease',name:'RIPES',topic:'TB treatment (first 2 months)',body:'R - Rifampin\\nI - Isoniazid\\nP - Pyrazinamide\\nE - Ethambutol\\nS - then RI x4 more months\\n\\nAdd pyridoxine (B6) to prevent INH neuropathy'},
+  {id:'m3',cat:'Psychiatry',name:'SIG E CAPS',topic:'Major depressive disorder criteria',body:'S - Sleep changes\\nI - Interest loss (anhedonia)\\nG - Guilt / worthlessness\\nE - Energy decreased\\nC - Concentration impaired\\nA - Appetite/weight change\\nP - Psychomotor changes\\nS - Suicidal ideation\\n\\n5+ symptoms x2 weeks including depressed mood or anhedonia'},
+  {id:'m4',cat:'Psychiatry',name:'DIG FAST',topic:'Mania criteria',body:'D - Distractibility\\nI - Impulsivity / Indiscretion\\nG - Grandiosity\\nF - Flight of ideas\\nA - Activity increased\\nS - Sleep decreased\\nT - Talkativeness / pressured speech'},
+  {id:'m5',cat:'Neurologic',name:'FAST',topic:'Stroke recognition',body:'F - Face drooping\\nA - Arm weakness\\nS - Speech difficulty\\nT - Time to call 911\\n\\ntPA window: 4.5 hours from last known well'},
+  {id:'m6',cat:'Neurologic',name:'AEIOU TIPS',topic:'Altered mental status causes',body:'A - Alcohol\\nE - Epilepsy / Electrolytes\\nI - Insulin (hypoglycemia)\\nO - Opiates / Overdose\\nU - Uremia\\nT - Trauma / Temperature\\nI - Infection\\nP - Psychiatric / Poisoning\\nS - Stroke / Structural'},
+  {id:'m7',cat:'Pulmonary',name:'Light Criteria',topic:'Pleural exudate vs transudate',body:'Exudate if ANY of:\\n1. Pleural protein / serum protein over 0.5\\n2. Pleural LDH / serum LDH over 0.6\\n3. Pleural LDH over 2/3 upper limit of normal\\n\\nTransudate: CHF, cirrhosis, nephrotic syndrome'},
+  {id:'m8',cat:'Reproductive',name:'4 Ts of PPH',topic:'Postpartum hemorrhage causes',body:'T - Tone (uterine atony -- 80%)\\nT - Tissue (retained placenta)\\nT - Trauma (lacerations, rupture)\\nT - Thrombin (coagulopathy)\\n\\nFirst-line: uterine massage + oxytocin'},
+  {id:'m9',cat:'Gastrointestinal',name:'Charcot vs Reynolds',topic:'Cholangitis',body:'Charcot Triad: Fever + RUQ pain + Jaundice\\n\\nReynolds Pentad: Charcot + AMS + Hypotension\\n\\nTreat: IV antibiotics + urgent ERCP'},
+  {id:'m10',cat:'Reproductive',name:'PALM-COEIN',topic:'Abnormal uterine bleeding causes',body:'Structural (PALM): Polyp, Adenomyosis, Leiomyoma, Malignancy\\n\\nNon-structural (COEIN): Coagulopathy, Ovulatory dysfunction, Endometrial, Iatrogenic, Not yet classified'},
+];
+var userMnemonics=load(MNSK,[]);
+function allMnemonics(){return seedMnemonics.concat(userMnemonics);}
+var mnFilt='All';
+function renderMnemonicFilters(){var f=document.getElementById('mn-filters');if(!f)return;f.innerHTML='';var cats=['All'];allMnemonics().forEach(function(m){if(cats.indexOf(m.cat)<0)cats.push(m.cat);});cats.forEach(function(c){var b=document.createElement('button');b.className='filtbtn'+(mnFilt===c?' act':'');b.textContent=c;b.setAttribute('data-c',c);b.onclick=function(){mnFilt=this.getAttribute('data-c');renderMnemonicFilters();renderMnemonics();};f.appendChild(b);});}
+function renderMnemonics(){
+  var cont=document.getElementById('mn-list');if(!cont)return;
+  var q=(document.getElementById('mn-search')||{}).value||'';
+  var ql=q.toLowerCase();
+  var list=allMnemonics();
+  if(mnFilt!=='All')list=list.filter(function(m){return m.cat===mnFilt;});
+  if(ql)list=list.filter(function(m){return(m.name+m.topic+m.body+m.cat).toLowerCase().indexOf(ql)>=0;});
+  if(!list.length){cont.innerHTML='<div class="empty">No mnemonics found.</div>';return;}
+  var html='';
+  list.forEach(function(m){
+    var bg=catBg[m.cat]||'#eee',tc=catTx[m.cat]||'#444';
+    html+='<div style="background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.75rem 1rem;margin-bottom:7px">';
+    html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">';
+    html+='<div><span style="font-size:15px;font-weight:600;color:var(--text);font-family:monospace">'+m.name+'</span>';
+    html+='<span style="font-size:11px;color:var(--text2);margin-left:8px">'+m.topic+'</span></div>';
+    html+='<span style="font-size:10px;padding:2px 7px;border-radius:3px;background:'+bg+';color:'+tc+';white-space:nowrap">'+m.cat+'</span>';
+    html+='</div>';
+    html+='<div style="font-size:12px;color:var(--text);line-height:1.8;background:var(--bg2);padding:8px 10px;border-radius:var(--r);margin-top:4px;white-space:pre-wrap">'+m.body+'</div>';
+    if(m.custom) html+='<button class="mn-del-btn" data-mid="'+m.id+'" style="margin-top:6px;font-size:10px;color:var(--text3);background:none;border:none;cursor:pointer;padding:0">remove</button>';
+    html+='</div>';
+  });
+  cont.innerHTML=html;
+  cont.querySelectorAll('.mn-del-btn').forEach(function(b){b.addEventListener('click',function(){deleteMnemonic(this.getAttribute('data-mid'));});});
+}
+
+function addMnemonic(){var name=document.getElementById('mn-name').value.trim();var cat=document.getElementById('mn-cat').value;var body=document.getElementById('mn-body').value.trim();var topic=document.getElementById('mn-topic').value.trim();var err=document.getElementById('mn-err');if(!name||!body){err.textContent='Name and content required.';return;}if(!cat){err.textContent='Pick a category.';return;}err.textContent='';userMnemonics.unshift({id:uid(),cat:cat,name:name,topic:topic,body:body,custom:true});save(MNSK,userMnemonics);document.getElementById('mn-name').value='';document.getElementById('mn-cat').value='';document.getElementById('mn-body').value='';document.getElementById('mn-topic').value='';renderMnemonicFilters();renderMnemonics();}
+function deleteMnemonic(id){userMnemonics=userMnemonics.filter(function(m){return m.id!==id;});save(MNSK,userMnemonics);renderMnemonicFilters();renderMnemonics();}
+
+// COUNTDOWN
+function updateCountdown(){
+  var examD=new Date(examISO+'T08:00:00');
+  var startD=new Date(startISO+'T00:00:00');
+  var now=new Date();
+  var diff=examD-now;
+  if(diff<=0){document.getElementById('cd-days').textContent='0';document.getElementById('cd-hours').textContent='00';document.getElementById('cd-mins').textContent='00';document.getElementById('cd-secs').textContent='00';document.getElementById('cd-pct').textContent='Exam day!';document.getElementById('cd-bar').style.width='100%';return;}
+  var days=Math.floor(diff/864e5);
+  var hours=Math.floor((diff%864e5)/36e5);
+  var mins=Math.floor((diff%36e5)/6e4);
+  var secs=Math.floor((diff%6e4)/1e3);
+  document.getElementById('cd-days').textContent=days;
+  document.getElementById('cd-hours').textContent=String(hours).padStart(2,'0');
+  document.getElementById('cd-mins').textContent=String(mins).padStart(2,'0');
+  document.getElementById('cd-secs').textContent=String(secs).padStart(2,'0');
+  var totalPrep=examD-startD;
+  var elapsed=now-startD;
+  var pct=Math.min(100,Math.max(0,Math.round(elapsed/totalPrep*100)));
+  document.getElementById('cd-bar').style.width=pct+'%';
+  document.getElementById('cd-pct').textContent=pct+'% of prep time used';
+}
+updateCountdown();
+setInterval(updateCountdown,1000);
+
+// INIT
+updatePlanStats();renderWNav();renderPlan();
+updateNMAStats();renderNMAFilters();renderNMA();
+renderDrugFilters();renderDrugs();
+renderMnemonicFilters();renderMnemonics();
+
+// BLUEPRINT
+var BPSK='pance_bp_gen_v1';
+var bpChecked=load(BPSK,{});
+var bpFilt='All';
+
+var blueprintData=[
+  {cat:'Cardiovascular',pct:11,color:'#E6F1FB',tc:'#0C447C',groups:[
+    {name:'Cardiomyopathy',items:['Dilated cardiomyopathy','Hypertrophic cardiomyopathy','Restrictive cardiomyopathy','Stress (Takotsubo) cardiomyopathy']},
+    {name:'Conduction disorders / dysrhythmias',items:['Atrial fibrillation','Atrial flutter','Atrial tachycardia','Atrioventricular block (1st, 2nd, 3rd degree)','Bradycardia','Bundle branch block (LBBB, RBBB)','Junctional rhythms','Premature contractions (PAC, PVC)','QT prolongation / torsades de pointes','Sick sinus syndrome','Ventricular fibrillation','Ventricular tachycardia','WPW / pre-excitation syndromes']},
+    {name:'Congenital heart disease',items:['Atrial septal defect (ASD)','Coarctation of the aorta','Patent ductus arteriosus (PDA)','Patent foramen ovale','Tetralogy of Fallot','Transposition of the great vessels','Ventricular septal defect (VSD)']},
+    {name:'Coronary artery disease',items:['Stable angina','Unstable angina','NSTEMI','STEMI','Atherosclerosis']},
+    {name:'Heart failure',items:['Heart failure with reduced EF (HFrEF)','Heart failure with preserved EF (HFpEF)','Acute decompensated heart failure']},
+    {name:'Hypertension',items:['Primary (essential) hypertension','Secondary hypertension','Hypertensive urgency','Hypertensive emergency']},
+    {name:'Lipid disorders',items:['Dyslipidemia / hyperlipidemia','Metabolic syndrome']},
+    {name:'Shock',items:['Cardiogenic shock','Distributive shock (septic, anaphylactic, neurogenic)','Hypovolemic shock','Obstructive shock (PE, tamponade)']},
+    {name:'Inflammatory / infectious cardiac',items:['Cardiac tamponade','Infective endocarditis','Myocarditis','Pericardial effusion','Pericarditis']},
+    {name:'Valvular disorders',items:['Aortic stenosis','Aortic regurgitation','Mitral stenosis','Mitral regurgitation','Mitral valve prolapse','Tricuspid and pulmonary valve disorders']},
+    {name:'Vascular disease',items:['Aortic aneurysm','Aortic dissection','Arterial embolism / thrombosis','Deep venous thrombosis (DVT)','Giant cell arteritis','Peripheral artery disease','Varicose veins / venous insufficiency']},
+  ]},
+  {cat:'Dermatologic',pct:4,color:'#FAECE7',tc:'#712B13',groups:[
+    {name:'Acneiform eruptions',items:['Acne vulgaris','Folliculitis','Perioral dermatitis','Rosacea']},
+    {name:'Desquamation',items:['Erythema multiforme','Stevens-Johnson syndrome (SJS)','Toxic epidermal necrolysis (TEN)']},
+    {name:'Diseases of hair and nails',items:['Alopecia (androgenic, alopecia areata)','Onychomycosis','Paronychia / felon']},
+    {name:'Infectious skin diseases',items:['Cellulitis','Erysipelas','Impetigo','Cutaneous candidiasis','Dermatophyte infections (tinea corporis, pedis, cruris, capitis, versicolor)','Pediculosis (lice)','Scabies','Condyloma acuminatum (HPV)','Herpes simplex (cutaneous)','Molluscum contagiosum','Varicella-zoster (shingles, chickenpox)','Verrucae (warts)']},
+    {name:'Keratotic disorders',items:['Actinic keratosis','Seborrheic keratosis']},
+    {name:'Neoplasms',items:['Basal cell carcinoma (BCC)','Squamous cell carcinoma (SCC)','Melanoma','Premalignant skin lesions','Benign skin neoplasms (lipoma, cyst)']},
+    {name:'Papulosquamous disorders',items:['Atopic dermatitis','Contact dermatitis','Drug eruptions','Lichen planus','Pityriasis rosea','Psoriasis','Seborrheic dermatitis']},
+    {name:'Pigment disorders',items:['Melasma','Vitiligo','Acanthosis nigricans']},
+    {name:'Skin integrity',items:['Burns (rule of 9s, Parkland formula)','Lacerations / wound care','Pressure injury (staging)']},
+    {name:'Vascular / other',items:['Purpura / petechiae','Stasis dermatitis','Urticaria','Hidradenitis suppurativa','Pilonidal disease']},
+    {name:'Vesiculobullous disease',items:['Bullous pemphigoid','Pemphigus vulgaris']},
+  ]},
+  {cat:'Endocrine',pct:6,color:'#EAF3DE',tc:'#27500A',groups:[
+    {name:'Adrenal disorders',items:['Cushing syndrome / disease','Primary adrenal insufficiency (Addison disease)','Pheochromocytoma','Congenital adrenal hyperplasia']},
+    {name:'Diabetes mellitus',items:['Type 1 diabetes mellitus','Type 2 diabetes mellitus','Diabetic ketoacidosis (DKA)','Hyperosmolar hyperglycemic state (HHS)','Hypoglycemia']},
+    {name:'Parathyroid disorders',items:['Hyperparathyroidism (primary, secondary)','Hypoparathyroidism','Hypercalcemia','Hypocalcemia']},
+    {name:'Pituitary disorders',items:['Acromegaly / gigantism','Cushing disease (pituitary)','Diabetes insipidus (central, nephrogenic)','Pituitary adenoma','Prolactinoma','SIADH']},
+    {name:'Thyroid disorders',items:['Hypothyroidism (Hashimoto thyroiditis)','Hyperthyroidism (Graves disease)','Thyroid storm','Myxedema coma','Subacute thyroiditis','Thyroid nodules / goiter','Thyroid cancer']},
+    {name:'Other endocrine',items:['Multiple endocrine neoplasia (MEN 1, 2A, 2B)','Hypogonadism']},
+  ]},
+  {cat:'Eyes, Ears, Nose, Throat',pct:6,color:'#EEEDFE',tc:'#26215C',groups:[
+    {name:'Eye disorders',items:['Bacterial conjunctivitis','Viral conjunctivitis','Allergic conjunctivitis','Corneal ulcer / keratitis','Iritis / uveitis / scleritis','Blepharitis','Chalazion / hordeolum','Dacryocystitis','Glaucoma (open-angle)','Glaucoma (closed-angle / acute)','Macular degeneration (AMD)','Retinal detachment','Diabetic retinopathy','Hypertensive retinopathy','Retinal vascular occlusion','Optic neuritis','Papilledema','Cataract','Amblyopia','Strabismus','Orbital / periorbital cellulitis']},
+    {name:'Ear disorders',items:['Acute otitis media','Otitis media with effusion (serous OM)','Otitis externa','Cerumen impaction','Cholesteatoma','Acoustic neuroma','Labyrinthitis / vestibular neuritis','Meniere disease','BPPV','Tinnitus','Conductive hearing loss','Sensorineural hearing loss','Mastoiditis','Tympanic membrane perforation']},
+    {name:'Nose and sinus disorders',items:['Allergic rhinitis','Non-allergic rhinitis','Epistaxis','Sinusitis (acute, chronic)','Nasal polyps']},
+    {name:'Oropharyngeal disorders',items:['Pharyngitis / tonsillitis (viral, strep)','Peritonsillar abscess','Epiglottitis','Laryngitis','Oral candidiasis (thrush)','Aphthous ulcers','Dental caries / abscess','Gingivitis / periodontitis','Sialadenitis / parotitis','Angioedema','Leukoplakia']},
+    {name:'EENT neoplasms',items:['Laryngeal cancer','Oral / tongue cancer','Nasopharyngeal cancer','Thyroid cancer (EENT)']},
+  ]},
+  {cat:'Gastrointestinal / Nutrition',pct:8,color:'#FAEEDA',tc:'#633806',groups:[
+    {name:'Biliary disorders',items:['Cholelithiasis','Acute cholecystitis','Chronic cholecystitis','Choledocholithiasis','Cholangitis (Charcot triad, Reynolds pentad)','Primary sclerosing cholangitis']},
+    {name:'Colorectal disorders',items:['Diverticulosis / diverticulitis','Hemorrhoids (internal, external)','Anal fissure','Anorectal abscess / fistula','Inflammatory bowel disease -- Crohn disease','Inflammatory bowel disease -- ulcerative colitis','Irritable bowel syndrome (IBS)','Constipation / fecal impaction','Bowel obstruction (small, large)','Toxic megacolon','Colorectal cancer','Rectal prolapse','Ischemic colitis']},
+    {name:'Esophageal disorders',items:['Gastroesophageal reflux disease (GERD)','Barrett esophagus','Esophagitis','Achalasia','Mallory-Weiss tear','Esophageal varices','Esophageal cancer','Zenker diverticulum']},
+    {name:'Gastric disorders',items:['Peptic ulcer disease (H. pylori, NSAID)','Gastritis','Gastroparesis','Pyloric stenosis','Gastric cancer']},
+    {name:'GI bleeding',items:['Upper GI bleeding (hematemesis, melena)','Lower GI bleeding (hematochezia)']},
+    {name:'Hepatic disorders',items:['Acute hepatitis A','Acute / chronic hepatitis B','Hepatitis C','Hepatitis D and E','Alcoholic liver disease / cirrhosis','Non-alcoholic fatty liver disease (NAFLD)','Portal hypertension / varices','Hepatic encephalopathy','Spontaneous bacterial peritonitis','Hepatocellular carcinoma (HCC)','Acetaminophen overdose / acute liver failure']},
+    {name:'Pancreatic disorders',items:['Acute pancreatitis','Chronic pancreatitis','Pancreatic cancer']},
+    {name:'Small intestine disorders',items:['Appendicitis','Celiac disease','Small bowel obstruction','Intussusception','Meckel diverticulum','Reye syndrome']},
+    {name:'Hernias',items:['Inguinal hernia','Umbilical hernia','Hiatal hernia','Incisional hernia']},
+    {name:'Nutrition',items:['Malabsorption (celiac, lactose intolerance)','Vitamin / mineral deficiencies (B12, folate, iron, D, thiamine)','Obesity management','Food allergies','Refeeding syndrome']},
+    {name:'Metabolic / other GI',items:['Phenylketonuria (PKU)','Rickets','Cholerheic diarrhea (post-cholecystectomy)']},
+  ]},
+  {cat:'Genitourinary',pct:4,color:'#E1F5EE',tc:'#085041',groups:[
+    {name:'Infectious disorders',items:['Cystitis (uncomplicated, complicated)','Pyelonephritis','Prostatitis (acute, chronic)','Epididymitis','Orchitis','Urethritis','Fournier gangrene']},
+    {name:'Benign prostatic hyperplasia',items:['Benign prostatic hyperplasia (BPH)']},
+    {name:'Bladder disorders',items:['Urinary incontinence (stress, urge, overflow)','Overactive bladder','Bladder cancer']},
+    {name:'Penile / testicular disorders',items:['Erectile dysfunction','Testicular torsion','Hydrocele / varicocele','Testicular cancer','Priapism','Paraphimosis / phimosis']},
+    {name:'Nephrolithiasis',items:['Calcium oxalate stones','Uric acid stones','Struvite stones','Cystine stones']},
+    {name:'Prostate neoplasms',items:['Prostate cancer (PSA screening, Gleason)']},
+    {name:'Other GU',items:['Enuresis (nocturnal, daytime)','Vesicoureteral reflux','Cryptorchidism','Urethral stricture']},
+  ]},
+  {cat:'Hematologic',pct:5,color:'#FCEBEB',tc:'#791F1F',groups:[
+    {name:'Anemias',items:['Iron deficiency anemia','Vitamin B12 deficiency anemia','Folate deficiency anemia','Anemia of chronic disease','Hemolytic anemia (autoimmune, microangiopathic)','Aplastic anemia','Sideroblastic anemia']},
+    {name:'Coagulation disorders',items:['Hemophilia A (Factor VIII)','Hemophilia B (Factor IX)','Von Willebrand disease','ITP (immune thrombocytopenic purpura)','TTP (thrombotic thrombocytopenic purpura)','HUS (hemolytic uremic syndrome)','HIT (heparin-induced thrombocytopenia)','DIC (disseminated intravascular coagulation)']},
+    {name:'Hereditary disorders',items:['Sickle cell disease','Thalassemia (alpha and beta)','G6PD deficiency','Hereditary spherocytosis','Hemochromatosis']},
+    {name:'Myeloproliferative / cytoses',items:['Polycythemia vera','Secondary polycythemia','Essential thrombocythemia']},
+    {name:'Neoplasms',items:['Acute lymphocytic leukemia (ALL)','Acute myelogenous leukemia (AML) -- Auer rods','Chronic myelogenous leukemia (CML) -- Philadelphia chromosome','Chronic lymphocytic leukemia (CLL) -- smudge cells','Hodgkin lymphoma -- Reed-Sternberg cells','Non-Hodgkin lymphoma','Multiple myeloma','Myelodysplastic syndrome']},
+    {name:'Transfusion',items:['Transfusion reactions (hemolytic, febrile, allergic)']},
+  ]},
+  {cat:'Infectious Disease',pct:7,color:'#FAECE7',tc:'#712B13',groups:[
+    {name:'Bacterial diseases',items:['Bartonella henselae (cat scratch disease)','Botulism','Campylobacter jejuni enteritis','Chlamydia trachomatis','Clostridioides difficile (C. diff)','Diphtheria','Gonorrhea (Neisseria gonorrhoeae)','MRSA infections','Pertussis (whooping cough)','Rheumatic fever (Group A Strep)','Rocky Mountain spotted fever (RMSF)','Salmonellosis','Shigellosis','Syphilis (primary, secondary, tertiary, latent)','Tetanus','Toxic shock syndrome']},
+    {name:'Fungal diseases',items:['Blastomycosis','Candidiasis (systemic / invasive)','Coccidioidomycosis','Cryptococcosis (cryptococcal meningitis)','Histoplasmosis','Pneumocystis jirovecii pneumonia (PCP)']},
+    {name:'Mycobacterial diseases',items:['Tuberculosis (TB) -- active disease','Latent TB infection','Atypical mycobacterial disease (MAC)']},
+    {name:'Parasitic diseases',items:['Amebiasis (Entamoeba histolytica)','Giardiasis','Malaria (Plasmodium species)','Pinworms (Enterobius)','Toxoplasmosis','Trichomoniasis']},
+    {name:'Sepsis / SIRS',items:['Sepsis / SIRS criteria','Septic shock','Bacteremia']},
+    {name:'Spirochetal diseases',items:['Lyme disease (Borrelia burgdorferi)','Syphilis (all stages)']},
+    {name:'Viral diseases',items:['HIV / AIDS (CD4 counts, opportunistic infections)','Influenza','Measles (rubeola)','Mumps','Varicella-zoster virus (chickenpox, shingles)','Herpes simplex virus (HSV-1, HSV-2)','EBV (mononucleosis)','CMV infections','Erythema infectiosum (fifth disease, parvovirus B19)','Roseola (HHV-6)','Rabies','Coronavirus infections','Human papillomavirus (HPV)','Rubella','Polio']},
+    {name:'Perinatal infections',items:['Group B Streptococcus (GBS) perinatal','Herpes simplex (neonatal)','Congenital varicella','Zika virus','Congenital syphilis']},
+  ]},
+  {cat:'Musculoskeletal',pct:8,color:'#FBEAF0',tc:'#72243E',groups:[
+    {name:'Rheumatologic disorders',items:['Rheumatoid arthritis (RA)','Systemic lupus erythematosus (SLE)','Gout (hyperuricemia, tophus, podagra)','Pseudogout (CPPD)','Fibromyalgia','Polymyalgia rheumatica','Polymyositis','Dermatomyositis','Reactive arthritis (formerly Reiter syndrome)','Sjogren syndrome','Systemic sclerosis (scleroderma)','Osteoporosis (T-score, DEXA, bisphosphonates)','Juvenile rheumatoid arthritis']},
+    {name:'Degenerative diseases',items:['Osteoarthritis']},
+    {name:'Infectious MSK',items:['Osteomyelitis','Septic arthritis']},
+    {name:'Spinal disorders',items:['Herniated disk (cervical, lumbar)','Spinal stenosis','Ankylosing spondylitis','Scoliosis','Spondylolisthesis','Low back pain','Cauda equina syndrome','Torticollis']},
+    {name:'Upper extremity disorders',items:['Clavicle fracture','Shoulder dislocation (anterior, posterior)','Rotator cuff tear / impingement','Frozen shoulder (adhesive capsulitis)','Subacromial bursitis','Lateral epicondylitis (tennis elbow)','Medial epicondylitis (golfer elbow)','Carpal tunnel syndrome','De Quervain tenosynovitis','Colles fracture','Smith fracture','Scaphoid fracture','Boxer fracture','Trigger finger','Ganglion cyst','Dupuytren contracture','Lunate dislocation']},
+    {name:'Lower extremity disorders',items:['Hip fracture (femoral neck, intertrochanteric)','Hip dislocation','Legg-Calve-Perthes disease','Slipped capital femoral epiphysis (SCFE)','Developmental dysplasia of the hip','Avascular necrosis of the femoral head','ACL / PCL / MCL / LCL tear','Meniscal injury','Patellar tendon / quadriceps tendon rupture','Osgood-Schlatter disease','Ankle sprain (lateral, medial)','Achilles tendon rupture','Plantar fasciitis','Stress fractures']},
+    {name:'Other MSK',items:['Compartment syndrome','Rhabdomyolysis','Thoracic outlet syndrome','Paget disease of bone']},
+  ]},
+  {cat:'Neurologic',pct:7,color:'#EEEDFE',tc:'#3C3489',groups:[
+    {name:'Cerebrovascular',items:['Ischemic stroke (MCA, ACA, PCA territories)','Hemorrhagic stroke (ICH)','Subarachnoid hemorrhage (SAH)','Subdural hematoma (SDH)','Epidural hematoma (EDH)','Transient ischemic attack (TIA)','Cerebral venous thrombosis']},
+    {name:'Headaches',items:['Migraine (with and without aura)','Tension headache','Cluster headache','Medication overuse headache','Idiopathic intracranial hypertension (pseudotumor cerebri)']},
+    {name:'Seizure disorders',items:['Focal seizures (simple, complex)','Generalized tonic-clonic seizures','Absence seizures','Myoclonic seizures','Atonic seizures','Status epilepticus','Febrile seizures']},
+    {name:'Infectious',items:['Bacterial meningitis (empiric treatment)','Viral meningitis (CSF findings)','Encephalitis (HSV, autoimmune)','Brain abscess']},
+    {name:'Movement disorders',items:['Parkinson disease','Essential tremor','Huntington disease','Restless legs syndrome','Tourette disorder']},
+    {name:'Neuromuscular disorders',items:['Multiple sclerosis (McDonald criteria)','Myasthenia gravis (acetylcholine receptor)','Guillain-Barre syndrome','Amyotrophic lateral sclerosis (ALS)','Cerebral palsy']},
+    {name:'Nerve / peripheral',items:['Carpal tunnel syndrome (median nerve)','Ulnar nerve entrapment','Radial nerve injury (wrist drop)','Peripheral neuropathy (diabetic, alcoholic)','Complex regional pain syndrome','Bell palsy (CN VII)']},
+    {name:'Neurocognitive / other',items:['Alzheimer dementia','Lewy body dementia','Vascular dementia','Delirium (vs dementia)','Normal pressure hydrocephalus','Concussion / TBI','Syncope','Idiopathic intracranial hypertension']},
+    {name:'Neoplasms',items:['Primary brain tumors (glioblastoma, meningioma)','Metastatic brain tumors']},
+  ]},
+  {cat:'Psychiatry',pct:7,color:'#F1EFE8',tc:'#444441',groups:[
+    {name:'Anxiety disorders',items:['Generalized anxiety disorder (GAD)','Panic disorder','Social anxiety disorder','Specific phobia','Agoraphobia']},
+    {name:'Bipolar disorders',items:['Bipolar I disorder (mania criteria)','Bipolar II disorder (hypomania)','Cyclothymic disorder']},
+    {name:'Depressive disorders',items:['Major depressive disorder (MDD) -- SIG E CAPS','Persistent depressive disorder (dysthymia)','Premenstrual dysphoric disorder (PMDD)','Seasonal affective disorder']},
+    {name:'Neurodevelopmental',items:['ADHD (inattentive, hyperactive, combined)','Autism spectrum disorder']},
+    {name:'Psychotic disorders',items:['Schizophrenia','Schizoaffective disorder','Brief psychotic disorder','Delusional disorder']},
+    {name:'OCD and related',items:['Obsessive-compulsive disorder (OCD)','Body dysmorphic disorder','Hoarding disorder','Trichotillomania']},
+    {name:'Trauma and stressor-related',items:['PTSD','Acute stress disorder','Adjustment disorder']},
+    {name:'Somatic disorders',items:['Somatic symptom disorder','Illness anxiety disorder','Functional neurological symptom disorder','Factitious disorder / Munchausen']},
+    {name:'Personality disorders',items:['Cluster A (paranoid, schizoid, schizotypal)','Cluster B (antisocial, borderline, histrionic, narcissistic)','Cluster C (avoidant, dependent, obsessive-compulsive PD)']},
+    {name:'Substance use',items:['Alcohol use disorder (CAGE, AUDIT, CIWA)','Opioid use disorder (MAT: buprenorphine, methadone)','Stimulant use disorder','Cannabis use disorder','Tobacco use disorder (5 As, varenicline, NRT)','Sedative / benzodiazepine use disorder']},
+    {name:'Eating / feeding disorders',items:['Anorexia nervosa','Bulimia nervosa','Binge eating disorder']},
+    {name:'Sleep disorders',items:['Insomnia','Obstructive sleep apnea (OSA)','Narcolepsy','Parasomnias']},
+    {name:'Abuse and neglect',items:['Child abuse / neglect','Elder abuse','Intimate partner violence','Sexual assault']},
+  ]},
+  {cat:'Pulmonary',pct:9,color:'#E1F5EE',tc:'#0F6E56',groups:[
+    {name:'Obstructive diseases',items:['Asthma (stepwise management)','COPD (GOLD staging, emphysema, chronic bronchitis)','Cystic fibrosis','Bronchiectasis']},
+    {name:'Restrictive diseases',items:['Idiopathic pulmonary fibrosis (IPF)','Sarcoidosis (bilateral hilar adenopathy)','Silicosis','Asbestosis','Coal workers pneumoconiosis','Hypersensitivity pneumonitis']},
+    {name:'Infectious pulmonary',items:['Community-acquired pneumonia (CAP)','Hospital-acquired pneumonia (HAP)','Aspiration pneumonia','Atypical pneumonia (mycoplasma, legionella, chlamydophila)','Fungal pneumonia (PCP, histoplasma, coccidioides)','Tuberculosis (pulmonary)','RSV / acute bronchiolitis','Acute bronchitis','Croup (laryngotracheobronchitis)','Epiglottitis','Pertussis']},
+    {name:'Pleural diseases',items:['Pleural effusion -- exudate (Light criteria)','Pleural effusion -- transudate','Spontaneous pneumothorax','Tension pneumothorax','Hemothorax','Pleuritis']},
+    {name:'Pulmonary circulation',items:['Pulmonary embolism (PE) -- Wells criteria, CT-PA','Pulmonary hypertension','Cor pulmonale','Pulmonary edema']},
+    {name:'Neoplasms',items:['Squamous cell carcinoma (central, Pancoast, PTHrP)','Adenocarcinoma (peripheral, most common overall)','Small cell carcinoma (SIADH, Cushing, Eaton-Lambert)','Large cell carcinoma','Carcinoid tumor','Solitary pulmonary nodule workup']},
+    {name:'Other pulmonary',items:['ARDS (Berlin criteria)','Obstructive sleep apnea (OSA) -- STOP-BANG','Obesity hypoventilation syndrome','Hyaline membrane disease (neonatal RDS)']},
+  ]},
+  {cat:'Renal',pct:5,color:'#E6F1FB',tc:'#0C447C',groups:[
+    {name:'Acid-base disorders',items:['Metabolic acidosis -- anion gap (MUDPILES)','Metabolic acidosis -- non-anion gap (HARD UP)','Metabolic alkalosis','Respiratory acidosis','Respiratory alkalosis','Mixed acid-base disorders']},
+    {name:'Acute kidney injury',items:['Prerenal AKI (BUN:Cr ratio, FENa)','Intrinsic AKI (ATN, glomerulonephritis, interstitial nephritis)','Postrenal AKI (obstruction)']},
+    {name:'Chronic kidney disease',items:['CKD staging by GFR (Stages 1-5)','CKD complications (anemia, hyperphosphatemia, hyperkalemia, metabolic acidosis)','ESRD / hemodialysis / peritoneal dialysis','Renal osteodystrophy']},
+    {name:'Electrolyte disorders',items:['Hyperkalemia / hypokalemia','Hypernatremia / hyponatremia (SIADH vs DI)','Hypercalcemia / hypocalcemia','Hypermagnesemia / hypomagnesemia','Hyperphosphatemia / hypophosphatemia']},
+    {name:'Glomerular diseases',items:['Nephrotic syndrome (massive proteinuria, edema, hyperlipidemia)','Nephritic syndrome (hematuria, proteinuria, HTN, oliguria)','IgA nephropathy (Berger disease)','Post-streptococcal GN','Membranous nephropathy','Minimal change disease','Rapidly progressive GN (RPGN)']},
+    {name:'Structural / congenital',items:['Polycystic kidney disease (PKD)','Horseshoe kidney','Hydronephrosis','Renal artery stenosis']},
+    {name:'Renal neoplasms',items:['Renal cell carcinoma (RCC)','Wilms tumor (nephroblastoma)']},
+    {name:'Other renal',items:['Rhabdomyolysis (myoglobinuria)','Contrast-induced nephropathy','Renovascular hypertension']},
+  ]},
+  {cat:'Reproductive',pct:7,color:'#FBEAF0',tc:'#72243E',groups:[
+    {name:'Breast disorders',items:['Mastitis / breast abscess','Fibroadenoma','Fibrocystic breast changes','Galactorrhea','Gynecomastia','Breast cancer (ductal, lobular, inflammatory)','Paget disease of the breast','DCIS / LCIS']},
+    {name:'Cervical disorders',items:['Cervicitis','Cervical dysplasia (LSIL, HSIL, CIN 1/2/3)','Cervical cancer (HPV types 16, 18)','Pap smear / colposcopy algorithm']},
+    {name:'Contraception',items:['Combined oral contraceptive pills (OCPs)','Progestin-only methods (mini-pill, Nexplanon, Depo-Provera)','IUD (hormonal Mirena, copper Paragard)','Barrier methods','Emergency contraception (Plan B, ella, copper IUD)','Permanent sterilization']},
+    {name:'Menstrual disorders',items:['Abnormal uterine bleeding (PALM-COEIN)','Primary and secondary amenorrhea','Dysmenorrhea (primary, secondary)','Premenstrual syndrome (PMS)','Premenstrual dysphoric disorder (PMDD)']},
+    {name:'Ovarian disorders',items:['Ovarian cysts (functional, dermoid, endometrioma)','Polycystic ovary syndrome (PCOS) -- Rotterdam criteria','Ovarian torsion','Ovarian cancer']},
+    {name:'Pelvic disorders',items:['Pelvic inflammatory disease (PID)','Endometriosis','Adenomyosis','Uterine fibroids (leiomyoma)','Uterine prolapse / cystocele / rectocele','Vaginitis (BV, candida, trichomonas)','Bartholin gland cyst / abscess']},
+    {name:'Pregnancy',items:['Preconception and prenatal care','First trimester screening (nuchal translucency, cell-free DNA)','Quad screen (AFP, estriol, hCG, inhibin A)','Ectopic pregnancy','Gestational diabetes','Preeclampsia / eclampsia / HELLP syndrome','Placenta previa','Abruptio placentae','Prelabor rupture of membranes (PROM)','Preterm labor','Labor and delivery (stages)','Postpartum hemorrhage (4 Ts)','Postpartum psychiatric disorders (baby blues, PPD, psychosis)','Rh incompatibility / RhoGAM','Shoulder dystocia (McRoberts maneuver)','Umbilical cord prolapse','Gestational trophoblastic disease','Multiple gestation','Cervical insufficiency','Sheehan syndrome','GBS prophylaxis in labor']},
+    {name:'Infertility and menopause',items:['Male and female infertility workup','Menopause and perimenopause','Hormone replacement therapy (HRT)']},
+    {name:'STIs in pregnancy',items:['Syphilis in pregnancy (penicillin)','GBS screening and prophylaxis','HSV in pregnancy','Chlamydia / gonorrhea in pregnancy']},
+  ]},
+  {cat:'Professional Practice',pct:6,color:'#f0f0ec',tc:'#444444',groups:[
+    {name:'Medical ethics and law',items:['Informed consent and refusal','Advance directives (living will, healthcare proxy, POLST)','DNR / DNI orders','Patient autonomy and capacity assessment','Confidentiality (HIPAA)','Mandatory reporting (child abuse, elder abuse, gunshot wounds, STIs, TB)','Medicolegal issues (malpractice, negligence, standard of care)','Death determination and pronouncement']},
+    {name:'PA professional practice',items:['Scope of practice and PA-physician collaboration','Delegation and supervision','Impaired provider (drug/alcohol)','Conflict of interest','Implicit bias and cultural humility','Social determinants of health']},
+    {name:'Evidence-based medicine',items:['Levels of evidence (RCT, meta-analysis, cohort, case-control)','Sensitivity / specificity / PPV / NPV','Likelihood ratios','Number needed to treat (NNT)','Absolute vs relative risk reduction','Screening test characteristics']},
+    {name:'Preventive medicine and screening',items:['USPSTF colorectal cancer screening (colonoscopy at 45)','USPSTF breast cancer screening (mammography)','USPSTF cervical cancer screening (Pap smear / HPV)','USPSTF lung cancer screening (low-dose CT)','USPSTF AAA screening (ultrasound, male smokers 65-75)','USPSTF depression screening','Immunization schedule -- adults','Immunization schedule -- pediatric','Diabetes screening (A1c, fasting glucose)','STI screening guidelines']},
+    {name:'Public health',items:['Reportable diseases and public health reporting','Infection control (hand hygiene, PPE, isolation precautions)','Outbreak investigation','Occupational health and exposures']},
+  ]},
+];
+
+function bpId(cat,grp,item){
+  return 'bp_'+(cat+grp+item).replace(/[^a-zA-Z0-9]/g,'_').slice(0,60);
+}
+function allBpIds(){
+  var ids=[];
+  blueprintData.forEach(function(c){c.groups.forEach(function(g){g.items.forEach(function(i){ids.push(bpId(c.cat,g.name,i));});});});
+  return ids;
+}
+function updateBpStats(){
+  var all=allBpIds(),done=all.filter(function(id){return bpChecked[id];}).length;
+  var pct=Math.round(done/all.length*100);
+  document.getElementById('bp-total').textContent=all.length;
+  document.getElementById('bp-done').textContent=done;
+  document.getElementById('bp-left').textContent=all.length-done;
+  document.getElementById('bp-pct').textContent=pct+'%';
+  document.getElementById('bp-pb').style.width=pct+'%';
+  document.getElementById('bp-pblbl').textContent=pct+'% covered ('+done+'/'+all.length+' topics)';
+}
+function renderBpFilters(){
+  var f=document.getElementById('bp-filters');if(!f)return;
+  f.innerHTML='';
+  var cats=['All'];
+  blueprintData.forEach(function(c){cats.push(c.cat);});
+  cats.forEach(function(c){
+    var b=document.createElement('button');
+    b.className='filtbtn'+(bpFilt===c?' act':'');
+    b.textContent=c==='All'?'All categories':c;
+    b.setAttribute('data-c',c);
+    b.onclick=function(){bpFilt=this.getAttribute('data-c');renderBpFilters();renderBlueprint();};
+    f.appendChild(b);
+  });
+}
+function togBp(id){
+  bpChecked[id]=!bpChecked[id];
+  save(BPSK,bpChecked);
+  var inp=document.getElementById(id);
+  var lbl=document.querySelector('label[data-for-bp="'+id+'"]');
+  if(inp) inp.checked=!!bpChecked[id];
+  if(lbl) lbl.className='tlab'+(bpChecked[id]?' dn':'');
+  updateBpStats();
+  // update group counter
+  var grpEl=document.getElementById('bpgrp_'+id.split('_').slice(0,4).join('_'));
+  if(grpEl){
+    // recalculate group done count
+    var grpId=id.split('_').slice(0,4).join('_');
+    var grpItems=document.querySelectorAll('[id^="'+grpId+'"]');
+    var grpDone=0;
+    grpItems.forEach(function(el){if(el.tagName==='INPUT'&&el.checked) grpDone++;});
+  }
+}
+function renderBlueprint(){
+  var cont=document.getElementById('bp-list');if(!cont)return;
+  var list=bpFilt==='All'?blueprintData:blueprintData.filter(function(c){return c.cat===bpFilt;});
+  var html='';
+  list.forEach(function(catObj){
+    var catTotal=0,catDone=0;
+    catObj.groups.forEach(function(g){g.items.forEach(function(i){catTotal++;if(bpChecked[bpId(catObj.cat,g.name,i)])catDone++;});});
+    var catPct=catTotal?Math.round(catDone/catTotal*100):0;
+    html+='<div class="bp-cat">';
+    html+='<div class="bp-cat-hdr">';
+    html+='<span class="bp-cat-name" style="color:'+catObj.tc+'">'+catObj.cat+'</span>';
+    html+='<span class="bp-badge" style="background:'+catObj.color+';color:'+catObj.tc+'">'+catObj.pct+'% of exam</span>';
+    html+='<span class="bp-cat-prog">'+catDone+'/'+catTotal+' ('+catPct+'%)</span>';
+    html+='</div>';
+    html+='<div class="bp-mini-bar-bg"><div style="height:3px;border-radius:3px;background:'+catObj.tc+';width:'+catPct+'%"></div></div>';
+    catObj.groups.forEach(function(grp){
+      var grpDone=grp.items.filter(function(i){return bpChecked[bpId(catObj.cat,grp.name,i)];}).length;
+      html+='<div class="bp-group">';
+      html+='<div class="bp-grp-hdr"><span>'+grp.name+'</span><span style="color:var(--text3)">'+grpDone+'/'+grp.items.length+'</span></div>';
+      html+='<div class="tlist">';
+      grp.items.forEach(function(item){
+        var id=bpId(catObj.cat,grp.name,item);
+        var done=!!bpChecked[id];
+        html+='<div class="ti">';
+        html+='<input type="checkbox" class="bp-cb" id="'+id+'" data-bpid="'+id+'" '+(done?'checked':'')+' />';
+        html+='<label class="tlab'+(done?' dn':'')+'" data-for-bp="'+id+'">'+item+'</label>';
+        html+='</div>';
+      });
+      html+='</div></div>';
+    });
+    html+='</div>';
+  });
+  cont.innerHTML=html;
+  // Attach checkbox events
+  cont.querySelectorAll('.bp-cb').forEach(function(cb){
+    cb.addEventListener('change',function(){togBp(this.getAttribute('data-bpid'));});
+  });
+  // Attach label click events
+  cont.querySelectorAll('label[data-for-bp]').forEach(function(lbl){
+    lbl.addEventListener('click',function(){
+      var id=this.getAttribute('data-for-bp');
+      var cb=document.getElementById(id);
+      if(cb){cb.checked=!cb.checked;togBp(id);}
+    });
+  });
+}
+renderBpFilters();
+renderBlueprint();
+updateBpStats();
+
+<\/script>
+</body>
+</html>`;
+}
+
+// Init page
+initDots();
+initCatGrids();
+initPackratInputs();
+</script>
+</body>
+</html>
